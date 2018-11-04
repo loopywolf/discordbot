@@ -1,0 +1,11 @@
+{
+  "name": "rpg-bot",
+  "version": "0.1.0",
+  "description": "dStory RPG bot for discord",
+  "main": "bot.js",
+  "author": "ANDREW-PIDCOCK",
+  "dependencies": {
+    "discord.js": "^11.4.2",
+    "sprintf-js": "^1.1.1"
+  }
+}
