@@ -4,7 +4,10 @@ const vsprintf = require('sprintf-js').vsprintf;
 const client = new Discord.Client();
 const settings = require('./settings.json');
 const { spawn } = require( 'child_process' );
-require('./mysqlauth.js');
+// added for MySQL connection
+const mysql = require('mysql');
+const dbconfig = require('./dbconfig.json');
+const dbpool = mysql.createPool(dbconfig);
 
 //https://discordapp.com/oauth2/authorize?&client_id=450390626534424586&scope=bot&permissions=0
 
@@ -14,11 +17,13 @@ function getNickname(myUser,myGuildID) {
 	return nickname;
 }
 
-function sheet(message,dbconn,s="") {
+function sheet(message,dbpool,s="") {
 	var uid = message.author.id;
 	var gid = message.channel.parent.id;
-	var sql = "SELECT nickname FROM discord_users WHERE category='"+gid+"' AND userid='"+uid+";";
-	dbconn.query(sql, function (err, result) {
+	var sql = "SELECT nickname FROM discord_users WHERE category='"+gid+"' AND userid='"+uid+"'";
+	console.log(sql);
+	message.channel.send("sheet: "+sql);
+	dbpool.query(sql, function (err, result,fields) {
 		if (err) throw err;
 		if (result) {
 			var nickname = result[0].nickname;
@@ -213,7 +218,7 @@ console.log(message.content);
 		myid(message);
 	}
 	if(cmd.startsWith('sheet')) {
-		sheet(message,dbconn,s="");
+		sheet(message,dbpool,s="");
 	}
 });
 
