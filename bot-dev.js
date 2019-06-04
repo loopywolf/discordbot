@@ -98,13 +98,13 @@ function sheet(message,dbpool,s="") {
                                 i++;
                         }
                         var pcsheet = `
-                        **SHEET**: ${pnick}
+**SHEET**: ${pnick}
 
-                        ${statagl} AGL | ${statbrn} BRN | ${statcrd} CRD | ${statovh} OVH
-                        ${statpcn} PCN | ${statper} PER | ${statstr} STR | ${statovh} WPR
-                        ${statxp} XP | ${statluck} LUCK
+    ${statagl} AGL | ${statbrn} BRN | ${statcrd} CRD | ${statovh} OVH
+    ${statpcn} PCN | ${statper} PER | ${statstr} STR | ${statovh} WPR
+    ${statxp} XP | ${statluck} LUCK
 
-                        `;
+`;
                         console.log(pcsheet);
                         message.channel.send(pcsheet);
                 }
