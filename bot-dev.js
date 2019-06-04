@@ -1,4 +1,5 @@
 const Discord = require('discord.js');
+const util = require('util');
 const sprintf = require('sprintf-js').sprintf;
 const vsprintf = require('sprintf-js').vsprintf;
 const client = new Discord.Client();
@@ -20,18 +21,99 @@ function getNickname(myUser,myGuildID) {
 function sheet(message,dbpool,s="") {
 	var uid = message.author.id;
 	var gid = message.channel.parent.id;
-	var sql = "SELECT nickname FROM discord_users WHERE category='"+gid+"' AND userid='"+uid+"'";
-	console.log(sql);
-	message.channel.send("sheet: "+sql);
-	dbpool.query(sql, function (err, result,fields) {
-		if (err) throw err;
-		if (result) {
-			var nickname = result[0].nickname;
-			message.channel.send("sheet: "+nickname);
-		} else {
+	var cid = "0";
+	var pnick = "";
+	var result = [];
+	var skills = [];
+	var combat = [];
+	var rp = [];
+	var statagl = "--";
+	var statbrn = "--";
+	var statcrd = "--";
+	var statovh = "--";
+	var statpcn = "--";
+	var statper = "--";
+	var statstr = "--";
+	var statwpr = "--";
+	var statluck = 0;
+	var statxp = 0;
+	var statName = "";
+	var sql = "";
+
+	sql = "SELECT nickname,char_id AS charid FROM discord_users WHERE category='"+gid+"' AND userid='"+uid+"'"
+        dbpool.query(sql, function (err, result,fields) {
+                if (err) throw err;
+                if (Object.keys(result).length) {
+                        pnick = result[0].nickname;
+			cid = result[0].charid;
+			sql = "SELECT * from dice_stats WHERE char_id = '"+cid+"'";
+			console.log(pnick);
+			console.log(cid);
+
+			        result = {};
+        console.log(sql);
+        dbpool.query(sql, function (err, result ,fields) {
+                if (err) throw err;
+                console.log("results:"+result);
+                if (Object.keys(result).length) {
+                        console.log(sql);
+                        var i=0;
+                        while(i<Object.keys(result).length) {
+                                statName = result[i].statName;
+                                console.log(i+" "+statName);
+                                switch (statName) {
+                                        case "AGL":
+                                                statagl = result[i].statValue;
+                                                break;
+                                        case "BRN":
+                                                statbrn = result[i].statValue;
+                                                break;
+                                        case "CRD":
+                                                statcrd = result[i].statValue;
+                                                break;
+                                        case "OVH":
+                                                statovh = result[i].statValue;
+                                                break;
+                                        case "PCN":
+                                                statpcn = result[i].statValue;
+                                                break;
+                                        case "PER":
+                                                statper = result[i].statValue;
+                                                break;
+                                        case "STR":
+                                                statstr = result[i].statValue;
+                                                break;
+                                        case "WPR":
+                                                statwpr = result[i].statValue;
+                                                break;
+                                        case "LUCK":
+                                                statluck = result[i].statValue;
+                                                break;
+                                        case "XP":
+                                                statxp = result[i].statValue;
+                                                break;
+                                        default:
+                                                //;
+                                }
+                                i++;
+                        }
+                        var pcsheet = `
+                        **SHEET**: ${pnick}
+
+                        ${statagl} AGL | ${statbrn} BRN | ${statcrd} CRD | ${statovh} OVH
+                        ${statpcn} PCN | ${statper} PER | ${statstr} STR | ${statovh} WPR
+                        ${statxp} XP | ${statluck} LUCK
+
+                        `;
+                        console.log(pcsheet);
+                        message.channel.send(pcsheet);
+                }
+        });
+                } else {
 			message.channel.send("sheet: not found");
-		}
-	});
+                        return false;
+                }
+        });
 }
 
 function canplay(message,s) {
@@ -217,8 +299,12 @@ console.log(message.content);
 	if(cmd.startsWith('myid')) {
 		myid(message);
 	}
-	if(cmd.startsWith('sheet')) {
+	if(cmd.startsWith('mysheet')) {
 		sheet(message,dbpool,s="");
+	}
+	if(cmd.startsWith('sheet')) {
+		var s = cmd.substr(5+1);
+		sheet(message,dbpool,s);
 	}
 });
 
