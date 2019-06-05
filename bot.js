@@ -45,6 +45,9 @@ function sheet(message,dbpool,s="") {
 	var skills = [];
 	var combat = [];
 	var roleplay = [];
+	var other = [];
+	var sp = [];
+	var ip = [];
 	var statagl = pad("-- AGL ",10,' ');
 	var statbrn = pad("-- BRN ",10,' ');
 	var statcrd = pad("-- CRD ",10,' ');
@@ -81,6 +84,8 @@ function sheet(message,dbpool,s="") {
 			var k=0; // combat index
 			var l=0; // other index
 			var m=0; // rp index
+			var n=0; // sp index
+			var o=0; // ip index
 			var z=0; // gp counter
 			var r=0; // counter to switch row 
                         while(i<Object.keys(result).length) {
@@ -119,20 +124,28 @@ function sheet(message,dbpool,s="") {
                                                 statxp = pad(result[i].statValue+" XP ",10,' ');
                                                 break;
                                         default:
+						console.log("statName: "+statName);
+						console.log("tally: "+tally);
 						if (tally.startsWith('BASE')) {
-							console.log("SKILL: "+i+" "+statName+" "+statValue);
 							skills[j] = pad(result[i].statValue,2,' ')+" "+statName;
 							j++;
-						} 
-						if (tally.startsWith('BLAST') || tally.startsWith('DAM') || tally.startsWith('WPN') || 	tally.startsWith('ARMOR') || tally.startsWith('TFF') || tally.startsWith('H2H') ) {
+						} else if (tally.startsWith('BLAST') || tally.startsWith('DAM') || tally.startsWith('WPN') || 	tally.startsWith('ARMOR') || tally.startsWith('TFF') || tally.startsWith('H2H') ) {
 							combat[k] = pad(result[i].statValue,3,' ')+" "+statName+" ["+tally+"]";
 							k++;
-						}
-						if (tally.startsWith('-')) {
-							console.log(m+"RP: "+i+" "+statName+" "+statValue);
+						} else if (tally.startsWith('-')) {
 							roleplay[m] = pad(result[i].statValue,2,' ')+" "+statName+" ["+tally+"]";
 							m++;
+						} else if (tally.startsWith('?')) {
+							other[l] = pad(result[i].statValue,2,' ')+" "+statName+" ["+tally+"]";
+							l++;
+						} else if (statName.startsWith('IP-') || statName.startsWith('NIP-') || statName.startsWith('INCOME')) {
+							//ip[o] = pad(result[i].statValue,2,' ')+" "+statName+" ["+tally+"]";
+							//o++;
+						} else if (!statName.startsWith('SD') && !statName.startsWith('BODY') && !statName.startsWith('DAMAGE') && !statName.startsWith('FREEB') && !statName.startsWith('SUSTAIN') && !statName.startsWith('LW') && !statName.startsWith('LB') && !statName.startsWith('INJURY') && !statName.startsWith('INIT') && !statName.startsWith('IO') && !statName.startsWith('PB') && !statName.startsWith('PW') && !statName.startsWith('FREEBIES') ) {
+							sp[n] = pad(result[i].statValue,4,' ')+" "+statName+" ["+tally+"]";	
+							n++;
 						}
+
 
                                	}	
                                 i++;
@@ -143,9 +156,12 @@ function sheet(message,dbpool,s="") {
 			r=0;
 			var maxl=longest(skills);
 			var maxr=2;
-			if (maxl > 20) {
-				maxr--;
-			}
+                        if (maxl > 20) {
+                                maxr--;
+                        }
+                        if (maxl > 30) {
+                                maxr--;
+                        }
 			while(z<j) {
 				pcskill += "|"+pad(skills[z],maxl,' ')+" ";
 				if(r<maxr && z+1<j) {
@@ -164,9 +180,12 @@ function sheet(message,dbpool,s="") {
 			r=0;
 			maxl=longest(combat);
 			maxr=2;
-			if (maxl > 20) {
-				maxr--;
-			}
+                        if (maxl > 20) {
+                                maxr--;
+                        }
+                        if (maxl > 30) {
+                                maxr--;
+                        }
 			while(z<k) {
 				pccombat += "|"+pad(combat[z],maxl,' ')+" ";
 				if(r<maxr && z+1<k) {
@@ -184,13 +203,12 @@ function sheet(message,dbpool,s="") {
 			z=0;
 			r=0;
 			maxl=longest(roleplay);
-			maxr=1;
-			if (maxl > 30) {
+			maxr=2;
+			if (maxl > 20) {
 				maxr--;
 			}
 			while(z<m) {
-				console.log(roleplay);
-				console.log(z+" "+roleplay[z]);
+				// console.log(z+" "+roleplay[z]);
 				pcrp += "|"+pad(roleplay[z],maxl,' ')+" ";
 				if(r<maxr && z+1<m) {
 					r++;
@@ -202,6 +220,86 @@ function sheet(message,dbpool,s="") {
 				}
 				z++;
 			}
+
+			var pcother = "";
+			z=0;
+			r=0;
+			maxl=longest(other);
+			maxr=2;
+                        if (maxl > 20) {
+                                maxr--;
+                        }
+                        if (maxl > 30) {
+                                maxr--;
+                        }
+
+			while(z<l) {
+                                console.log(z+" "+other[z]);
+                                pcother += "|"+pad(other[z],maxl,' ')+" ";
+                                if(r<maxr && z+1<l) {
+                                        r++;
+                                } else if (z+1==l) {
+                                        pcother += "|";
+                                } else {
+                                        pcother += "|\n  ";
+                                        r=0;
+                                }
+                                z++;
+			}
+
+			var pcsp = "";
+			z=0;
+			r=0;
+			maxl=longest(sp);
+			maxr=2;
+			if (maxl > 20) {
+				maxr--;
+			}
+			if (maxl > 30) {
+				maxr--;
+			}
+
+			while(z<n) {
+				console.log(z+" "+sp[z]);
+				pcsp += "|"+pad(sp[z],maxl,' ')+" ";
+				if(r<maxr && z+1<n) {
+					r++;
+				} else if (z+1==n) {
+					pcsp += "|";
+				} else {
+					pcsp += "|\n  ";
+					r=0;
+				}
+				z++;
+			}
+
+                        var pcip = "";
+                        z=0;
+                        r=0;
+                        maxl=longest(ip);
+                        maxr=2;
+                        if (maxl > 20) {
+                                maxr--;
+                        }
+                        if (maxl > 30) {
+                                maxr--;
+                        }
+
+                        while(z<o) {
+                                console.log(z+" "+ip[z]);
+                                pcip += "|"+pad(ip[z],maxl,' ')+" ";
+                                if(r<maxr && z+1<o) {
+                                        r++;
+                                } else if (z+1==o) {
+                                        pcip += "|";
+                                } else {
+                                        pcip += "|\n  ";
+                                        r=0;
+                                }
+                                z++;
+                        }
+
+
                         var pcsheet = `
 SHEET: ${pnick}
 
@@ -216,7 +314,16 @@ SHEET: ${pnick}
   #COMBAT
   ${pccombat}
 
-  #RP
+  #SPECIAL_ABILITIES
+  ${pcsp}
+
+  #INFLUENCE_POINTS
+  ${pcip}
+
+  #OTHER
+  ${pcother}
+
+  #ROLEPLAYS
   ${pcrp}
 
 `;
