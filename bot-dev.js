@@ -184,8 +184,8 @@ function sheet(message,dbpool,s="") {
 			z=0;
 			r=0;
 			maxl=longest(roleplay);
-			maxr=1;
-			if (maxl > 30) {
+			maxr=2;
+			if (maxl > 20) {
 				maxr--;
 			}
 			while(z<m) {
