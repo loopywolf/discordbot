@@ -18,6 +18,24 @@ function getNickname(myUser,myGuildID) {
 	return nickname;
 }
 
+function pad(n, width, z) {
+  z = z || '0';
+  n = n + '';
+  return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+}
+
+function longest(arr) {
+  var alenght = 0;
+  var y=0;
+  while(y<arr.length) {
+	  if (arr[y].length > alenght) {
+		  alenght = arr[y].length;
+	  }
+	  y++;
+  } 
+  return alenght;
+}
+
 function sheet(message,dbpool,s="") {
 	var uid = message.author.id;
 	var gid = message.channel.parent.id;
@@ -26,19 +44,21 @@ function sheet(message,dbpool,s="") {
 	var result = [];
 	var skills = [];
 	var combat = [];
-	var rp = [];
-	var statagl = "--";
-	var statbrn = "--";
-	var statcrd = "--";
-	var statovh = "--";
-	var statpcn = "--";
-	var statper = "--";
-	var statstr = "--";
-	var statwpr = "--";
+	var roleplay = [];
+	var statagl = pad("-- AGL ",10,' ');
+	var statbrn = pad("-- BRN ",10,' ');
+	var statcrd = pad("-- CRD ",10,' ');
+	var statovh = pad("-- OVH ",10,' ');
+	var statpcn = pad("-- PCN ",10,' ');
+	var statper = pad("-- PER ",10,' ');
+	var statstr = pad("-- STR ",10,' ');
+	var statwpr = pad("-- SPR ",10,' '); 
 	var statluck = 0;
 	var statxp = 0;
 	var statName = "";
+	var tally = "";
 	var sql = "";
+	var skills = [];
 
 	sql = "SELECT nickname,char_id AS charid FROM discord_users WHERE category='"+gid+"' AND userid='"+uid+"'"
         dbpool.query(sql, function (err, result,fields) {
@@ -54,59 +74,155 @@ function sheet(message,dbpool,s="") {
         console.log(sql);
         dbpool.query(sql, function (err, result ,fields) {
                 if (err) throw err;
-                console.log("results:"+result);
                 if (Object.keys(result).length) {
                         console.log(sql);
-                        var i=0;
+                        var i=0; // result index
+			var j=0; // skill index
+			var k=0; // combat index
+			var l=0; // other index
+			var m=0; // rp index
+			var z=0; // gp counter
+			var r=0; // counter to switch row 
                         while(i<Object.keys(result).length) {
                                 statName = result[i].statName;
-                                console.log(i+" "+statName);
+				statValue = result[i].statValue;
+				tally = result[i].tally;
                                 switch (statName) {
                                         case "AGL":
-                                                statagl = result[i].statValue;
+                                                statagl = pad(result[i].statValue+" AGL ",10,' ');
                                                 break;
                                         case "BRN":
-                                                statbrn = result[i].statValue;
+                                                statbrn = pad(result[i].statValue+" BRN ",10,' ');
                                                 break;
                                         case "CRD":
-                                                statcrd = result[i].statValue;
+                                                statcrd = pad(result[i].statValue+" BRN ",10,' ');
                                                 break;
                                         case "OVH":
-                                                statovh = result[i].statValue;
+                                                statovh = pad(result[i].statValue+" OVH ",10,' ');
                                                 break;
                                         case "PCN":
-                                                statpcn = result[i].statValue;
+                                                statpcn = pad(result[i].statValue+" PCN ",10,' ');
                                                 break;
                                         case "PER":
-                                                statper = result[i].statValue;
+                                                statper = pad(result[i].statValue+" PER ",10,' ');
                                                 break;
                                         case "STR":
-                                                statstr = result[i].statValue;
+                                                statstr = pad(result[i].statValue+" STR ",10,' ');
                                                 break;
                                         case "WPR":
-                                                statwpr = result[i].statValue;
+                                                statwpr = pad(result[i].statValue+" WPR ",10,' ');
                                                 break;
                                         case "LUCK":
-                                                statluck = result[i].statValue;
+                                                statluck = pad(result[i].statValue+" LUCK ",10,' ');
                                                 break;
                                         case "XP":
-                                                statxp = result[i].statValue;
+                                                statxp = pad(result[i].statValue+" XP ",10,' ');
                                                 break;
                                         default:
-                                                //;
-                                }
+						if (tally.startsWith('BASE')) {
+							console.log("SKILL: "+i+" "+statName+" "+statValue);
+							skills[j] = pad(result[i].statValue,2,' ')+" "+statName;
+							j++;
+						} 
+						if (tally.startsWith('BLAST') || tally.startsWith('DAM') || tally.startsWith('WPN') || 	tally.startsWith('ARMOR') || tally.startsWith('TFF') || tally.startsWith('H2H') ) {
+							combat[k] = pad(result[i].statValue,3,' ')+" "+statName+" ["+tally+"]";
+							k++;
+						}
+						if (tally.startsWith('-')) {
+							console.log(m+"RP: "+i+" "+statName+" "+statValue);
+							roleplay[m] = pad(result[i].statValue,2,' ')+" "+statName+" ["+tally+"]";
+							m++;
+						}
+
+                               	}	
                                 i++;
                         }
-                        var pcsheet = `
-**SHEET**: ${pnick}
 
-    ${statagl} AGL | ${statbrn} BRN | ${statcrd} CRD | ${statovh} OVH
-    ${statpcn} PCN | ${statper} PER | ${statstr} STR | ${statovh} WPR
-    ${statxp} XP | ${statluck} LUCK
+			var pcskill = "";
+			z=0;
+			r=0;
+			var maxl=longest(skills);
+			var maxr=2;
+			if (maxl > 20) {
+				maxr--;
+			}
+			while(z<j) {
+				pcskill += "|"+pad(skills[z],maxl,' ')+" ";
+				if(r<maxr && z+1<j) {
+					r++;
+				} else if (z+1==j) {
+					pcskill += "|";
+				} else {
+					pcskill += "|\n  ";
+					r=0;
+				}
+				z++;
+			}
+
+			var pccombat = "";
+			z=0;
+			r=0;
+			maxl=longest(combat);
+			maxr=2;
+			if (maxl > 20) {
+				maxr--;
+			}
+			while(z<k) {
+				pccombat += "|"+pad(combat[z],maxl,' ')+" ";
+				if(r<maxr && z+1<k) {
+					r++;
+				} else if (z+1==k) {
+					pccombat += "|";
+				} else {
+					pccombat += "|\n  ";
+					r=0;
+				}
+				z++;
+			}
+
+			var pcrp = "";
+			z=0;
+			r=0;
+			maxl=longest(roleplay);
+			maxr=1;
+			if (maxl > 30) {
+				maxr--;
+			}
+			while(z<m) {
+				console.log(roleplay);
+				console.log(z+" "+roleplay[z]);
+				pcrp += "|"+pad(roleplay[z],maxl,' ')+" ";
+				if(r<maxr && z+1<m) {
+					r++;
+				} else if (z+1==m) {
+					pcrp += "|";
+				} else {
+					pcrp += "|\n  ";
+					r=0;
+				}
+				z++;
+			}
+                        var pcsheet = `
+SHEET: ${pnick}
+
+  #STATS
+  |${statagl}|${statbrn}|${statcrd}|${statovh}|
+  |${statpcn}|${statper}|${statstr}|${statwpr}|
+  |${statluck}|${statxp}|
+
+  #SKILLS
+  ${pcskill}
+
+  #COMBAT
+  ${pccombat}
+
+  #RP
+  ${pcrp}
 
 `;
                         console.log(pcsheet);
-                        message.channel.send(pcsheet);
+			var pcs = "```css"+pcsheet+"```" 
+                        message.channel.send(pcs);
                 }
         });
                 } else {
