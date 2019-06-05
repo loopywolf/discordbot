@@ -139,8 +139,8 @@ function sheet(message,dbpool,s="") {
 							other[l] = pad(result[i].statValue,2,' ')+" "+statName+" ["+tally+"]";
 							l++;
 						} else if (statName.startsWith('IP-') || statName.startsWith('NIP-') || statName.startsWith('INCOME')) {
-							//ip[o] = pad(result[i].statValue,2,' ')+" "+statName+" ["+tally+"]";
-							//o++;
+							ip[o] = pad(result[i].statValue,2,' ')+" "+statName+" ["+tally+"]";
+							o++;
 						} else if (!statName.startsWith('SD') && !statName.startsWith('BODY') && !statName.startsWith('DAMAGE') && !statName.startsWith('FREEB') && !statName.startsWith('SUSTAIN') && !statName.startsWith('LW') && !statName.startsWith('LB') && !statName.startsWith('INJURY') && !statName.startsWith('INIT') && !statName.startsWith('IO') && !statName.startsWith('PB') && !statName.startsWith('PW') && !statName.startsWith('FREEBIES') ) {
 							sp[n] = pad(result[i].statValue,4,' ')+" "+statName+" ["+tally+"]";	
 							n++;
