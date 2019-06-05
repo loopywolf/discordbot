@@ -120,16 +120,12 @@ function sheet(message,dbpool,s="") {
                                                 break;
                                         default:
 						if (tally.startsWith('BASE')) {
-							console.log("SKILL: "+i+" "+statName+" "+statValue);
 							skills[j] = pad(result[i].statValue,2,' ')+" "+statName;
 							j++;
-						} 
-						if (tally.startsWith('BLAST') || tally.startsWith('DAM') || tally.startsWith('WPN') || 	tally.startsWith('ARMOR') || tally.startsWith('TFF') || tally.startsWith('H2H') ) {
+						} else if (tally.startsWith('BLAST') || tally.startsWith('DAM') || tally.startsWith('WPN') || 	tally.startsWith('ARMOR') || tally.startsWith('TFF') || tally.startsWith('H2H') ) {
 							combat[k] = pad(result[i].statValue,3,' ')+" "+statName+" ["+tally+"]";
 							k++;
-						}
-						if (tally.startsWith('-')) {
-							console.log(m+"RP: "+i+" "+statName+" "+statValue);
+						} else if (tally.startsWith('-')) {
 							roleplay[m] = pad(result[i].statValue,2,' ')+" "+statName+" ["+tally+"]";
 							m++;
 						}
