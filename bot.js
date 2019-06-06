@@ -601,10 +601,20 @@ console.log(message.content);
 	cmd = result[1];
 	
 	if (cmd.startsWith('help')) {
-		message.channel.send("try:");
-		message.channel.send(" icanplay <game> <dates>");
-		message.channel.send(" roll <level> vs <difficulty>");
-		message.channel.send(" calc <level> vs <difficulty> with <roll>");
+		var help = `
+[General Commands]:
+  icanplay <game> <dates>
+  roll <level> vs <difficulty>
+  calc <level> vs <difficulty> with <roll>
+  sheet <character>
+  mobilesheet <character>
+
+[Player Commands]
+  I am <character>
+  mysheet
+  mymobilesheet
+`;
+		message.channel.send("```css\n"+help+"```");
 	} else
 	if(cmd.startsWith('icanplay')) {
 		canplay(message,cmd.substr(8+1));
