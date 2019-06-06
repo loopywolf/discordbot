@@ -9,7 +9,6 @@ const { spawn } = require( 'child_process' );
 const mysql = require('mysql');
 const dbconfig = require('./dbconfig.json');
 const dbpool = mysql.createPool(dbconfig);
-const randomquotes = require('./random.json');
 
 //https://discordapp.com/oauth2/authorize?&client_id=450390626534424586&scope=bot&permissions=0
 
@@ -17,8 +16,6 @@ function getNickname(myUser,myGuildID) {
 	var nickname = client.guilds.find('id',myGuildID).members.find('id',myUser.id).nickname;
 	if (nickname == null) { nickname = myUser.username; }
 	return nickname;
-
-
 }
 
 function pad(n, width, z) {
@@ -62,39 +59,6 @@ function mysql_real_escape_string (str) {
                                   // and double/single quotes
         }
     });
-}
-
-function iam(message,s,dbpool) {
-	var uid = message.author.id;
-	var gid = message.channel.parent.id;
-	s = mysql_real_escape_string(s);
-	console.log('iam: '+s);
-	// message.channel.send("myid: "+user+" checked self-id "+id);
-	var sql1 = "SELECT id AS charid FROM dice_characters WHERE name ='"+s+"'";
-        dbpool.query(sql1, function (err, result,fields) {
-                if (err) throw err;
-                if (Object.keys(result).length) {
-			cid = result[0].charid;
-			result = {};
-			var sql2 = "SELECT nickname, char_id AS charid FROM discord_users WHERE category='"+gid+"' AND userid='"+uid+"'";
-			dbpool.query(sql2, function (err, result,fields) {
-				if (err) throw err;
-				if (Object.keys(result).length && result[0].nickname == s ) {
-					message.channel.send("Hi "+s+"!  Glad to see you again!");
-				} else if (Object.keys(result).length && result[0].nickname != s) {
-					message.channel.send("Are you sure "+s+"?  I think you are "+result[0].nickname+".");
-				} else {
-					var sql3="INSERT INTO discord_users (category,userid,char_id,nickname) VALUES ('"+gid+"','"+uid+"','"+cid+"','"+s+"')";
-					dbpool.query(sql3, function (err, result,fields) {
-						if (err) throw err;
-						message.channel.send("Hi "+s+"! Nice to meet you.");
-					});
-				}
-			});
-		} else {
-			message.channel.send("Hi "+s+"! I am sorry, but LoopyWolf said not to talk to strangers!")
-		}
-	});
 }
 
 function sheet(message,dbpool,s="",mobile=0) {
@@ -640,10 +604,6 @@ console.log(message.content);
 	if(cmd.startsWith('mobilesheet')) {
 		var s = cmd.substr(11+1);
 		sheet(message,dbpool,s,1);
-	}
-	if(cmd.startsWith('I am')) {
-		var s = cmd.substr(4+1);
-		iam(message,s,dbpool);
 	}
 });
 
