@@ -17,8 +17,6 @@ function getNickname(myUser,myGuildID) {
 	var nickname = client.guilds.find('id',myGuildID).members.find('id',myUser.id).nickname;
 	if (nickname == null) { nickname = myUser.username; }
 	return nickname;
-
-
 }
 
 function pad(n, width, z) {
@@ -63,6 +61,53 @@ function mysql_real_escape_string (str) {
         }
     });
 }
+function gm(message) {
+	if (message.member.roles.find("name","@gm")) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+function registercharacter(message,s,dbpool) {
+	var game = ""
+	var gameid = 0;
+	var nickname = "";
+
+	if(!gm(message)) {
+		message.channel.send("I am sorry.  You are not allowed to do this");
+	} else {
+		var parameters = s.split(" ");
+		//add <character> in <game>
+		if(parameters.length != 3) {
+			message.channel.send("add: expecting 3 parameters (add <character> in <game>)");
+			return false;
+		} 
+		if(parameters[1] != "in") {
+			message.channel.send("add: expecting 3 parameters (add <character> in <game>)");
+			return false;
+		}
+		nickname = parameters[0];
+		game = parameters[2];
+		var sql = "SELECT id FROM dice_games WHERE gameName = '"+game+"'";
+		dbpool.query(sql, function (err, result,fields) {
+			if (err) throw err;
+			if (Object.keys(result).length) {
+				gameid=result[0].id;
+				result = {};
+				sql = "INSERT INTO dice_characters (name,game_id,aspects,image_path,map_x,map_y) VALUES ('"+nickname+"','"+gameid+"','','','','')";
+				dbpool.query(sql, function (err, result, fields) {
+					if (err) throw err;
+					message.channel.send("Okay added "+nickname+" to "+game);
+				});
+
+			} else {
+				message.channel.send("Game "+game+" was not found.");
+			}
+		});
+	}
+}
+
 
 function iam(message,s,dbpool) {
 	var uid = message.author.id;
@@ -82,7 +127,7 @@ function iam(message,s,dbpool) {
 				if (Object.keys(result).length && result[0].nickname == s ) {
 					message.channel.send("Hi "+s+"!  Glad to see you again!");
 				} else if (Object.keys(result).length && result[0].nickname != s) {
-					message.channel.send("Are you sure "+s+"?  I think you are "+result[0].nickname+".");
+					message.channel.send("Are you sure you're "+s+"?  I think you are "+result[0].nickname+".");
 				} else {
 					var sql3="INSERT INTO discord_users (category,userid,char_id,nickname) VALUES ('"+gid+"','"+uid+"','"+cid+"','"+s+"')";
 					dbpool.query(sql3, function (err, result,fields) {
@@ -413,7 +458,8 @@ stats = `  #STATS
 `;
 			}
 
-pcsheet += stats + `  #SKILLS
+pcsheet += stats + `
+  #SKILLS
   ${pcskill}
 
   #COMBAT
@@ -613,6 +659,9 @@ console.log(message.content);
   I am <character>
   mysheet
   mymobilesheet
+
+[GM Commands]
+  add <character> in <game>
 `;
 		message.channel.send("```css\n"+help+"```");
 	} else
@@ -654,6 +703,10 @@ console.log(message.content);
 	if(cmd.startsWith('I am')) {
 		var s = cmd.substr(4+1);
 		iam(message,s,dbpool);
+	}
+	if(cmd.startsWith('add')) {
+		var s = cmd.substr(3+1);
+		registercharacter(message,s,dbpool);
 	}
 });
 
