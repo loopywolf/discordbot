@@ -95,7 +95,9 @@ function registercharacter(message,s,dbpool) {
 			if (Object.keys(result).length) {
 				gameid=result[0].id;
 				result = {};
-				sql = "INSERT INTO dice_characters (name,game_id,aspects,image_path,map_x,map_y) VALUES ('"+nickname+"','"+gameid+"','','','','')";
+				// sql = "INSERT INTO dice_characters (name,game_id,aspects,image_path,map_x,map_y) VALUES ('"+nickname+"','"+gameid+"','','','','')";
+				sql = "INSERT INTO dice_characters (name,game_id,aspects,image_path,map_x,map_y) SELECT '"+nickname+"','"+gameid+"',''.'','','' FROM DUAL WHERE NOT EXISTS (SELECT name FROM dice_characters WHERE name='"+nickname+"')";
+				console.log(sql);
 				dbpool.query(sql, function (err, result, fields) {
 					if (err) throw err;
 					message.channel.send("Okay added "+nickname+" to "+game);
@@ -700,7 +702,7 @@ console.log(message.content);
 		var s = cmd.substr(11+1);
 		sheet(message,dbpool,s,1);
 	}
-	if(cmd.startsWith('I am')) {
+	if(cmd.startsWith('I am')||cmd.startsWith('i am')) {
 		var s = cmd.substr(4+1);
 		iam(message,s,dbpool);
 	}
