@@ -510,6 +510,89 @@ function canplay(message,s) {
 	//addYourDates( user, gameName, gameDates );
 }//F
 
+function diceroll(message) {
+	var percentile = Math.random();
+	var reportPercentile = Math.round(100 * percentile);
+	message.channel.send("diceroll: "+reportPercentile);
+	return;
+}
+
+function callten(message,dbpool) {
+    var uid = message.author.id;
+    var gid = message.channel.parent.id;
+    sql = "SELECT nickname,char_id AS charid FROM discord_users WHERE category='"+gid+"' AND userid='"+uid+"'";
+    dbpool.query(sql, function (err, result,fields) {
+        if (err) throw err;
+        if (Object.keys(result).length) {
+            pnick = result[0].nickname;
+            cid = result[0].charid;
+            sql = "SELECT statValue from dice_stats WHERE char_id = '"+cid+"' AND statName = 'LUCK'";
+            console.log(pnick);
+            console.log(cid);
+            result = {};
+	    dbpool.query(sql, function (err, result,fields) {
+		    if (err) throw err;
+		    if (Object.keys(result).length) {
+			    luck = result[0].statValue;
+			    if (luck > 0) {
+				    luck = luck - 1;
+				    sql = "UPDATE dice_stats SET statValue = '"+luck+"' WHERE dice_stats.char_id = 508 AND dice_stats.statName = 'LUCK'";
+			            result = {};
+				    dbpool.query(sql, function (err, result,fields) {
+					    if (err) throw err;
+					    message.channel.send("call10: "+pnick+" now has luck "+luck);
+					    return;
+				    })
+			    } else {
+				    message.channel.send("call10: "+pnick+" does not have enough luck.");
+			    }
+		    }
+	    })
+        } else {
+	    message.channel.send("call10: Sorry, I could not find your character.");
+	    return;
+	}
+   })
+}
+
+function reroll(message,dbpool) {
+    var uid = message.author.id;
+    var gid = message.channel.parent.id;
+    sql = "SELECT nickname,char_id AS charid FROM discord_users WHERE category='"+gid+"' AND userid='"+uid+"'";
+    dbpool.query(sql, function (err, result,fields) {
+        if (err) throw err;
+        if (Object.keys(result).length) {
+            pnick = result[0].nickname;
+            cid = result[0].charid;
+            sql = "SELECT statValue from dice_stats WHERE char_id = '"+cid+"' AND statName = 'LUCK'";
+            console.log(pnick);
+            console.log(cid);
+            result = {};
+            dbpool.query(sql, function (err, result,fields) {
+                    if (err) throw err;
+                    if (Object.keys(result).length) {
+                            luck = result[0].statValue;
+                            if (luck > 1) {
+                                    luck = luck - 2;
+                                    sql = "UPDATE dice_stats SET statValue = '"+luck+"' WHERE dice_stats.char_id = 508 AND dice_stats.statName = 'LUCK'";
+                                    result = {};
+                                    dbpool.query(sql, function (err, result,fields) {
+                                            if (err) throw err;
+                                            message.channel.send("reroll: "+pnick+" now has luck "+luck);
+                                            return;
+                                    })
+                            } else {
+                                    message.channel.send("reroll: "+pnick+" does not have enough luck.");
+                            }
+                    }
+            })
+        } else {
+            message.channel.send("reroll: Sorry, I could not find your character.");
+            return;
+        }
+   })
+}
+
 function roll(message,s,crit=0,crittrue=0,previous="") {
 	var user = message.author.username;
 	var finalresult = 0;
@@ -652,6 +735,7 @@ console.log(message.content);
 		var help = `
 [General Commands]:
   icanplay <game> <dates>
+  diceroll
   roll <level> vs <difficulty>
   calc <level> vs <difficulty> with <roll>
   sheet <character>
@@ -661,6 +745,8 @@ console.log(message.content);
   I am <character>
   mysheet
   mymobilesheet
+  call10
+  reroll
 
 [GM Commands]
   add <character> in <game>
@@ -709,6 +795,16 @@ console.log(message.content);
 	if(cmd.startsWith('add')) {
 		var s = cmd.substr(3+1);
 		registercharacter(message,s,dbpool);
+	}
+	if(cmd.startsWith('diceroll')) {
+		diceroll(message);
+	}
+	if(cmd.startsWith('call10')) {
+		callten(message,dbpool);
+	}
+
+	if(cmd.startsWith('reroll')) {
+		reroll(message,dbpool);
 	}
 });
 
