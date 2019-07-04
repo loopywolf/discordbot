@@ -69,6 +69,53 @@ function gm(message) {
 	}
 }
 
+function injury(message,dbpool) {
+    var uid = message.author.id;
+    var gid = message.channel.parent.id;
+	var i=0;
+	var pcbody=0;
+	var pcwound=0;
+    sql = "SELECT nickname,char_id AS charid FROM discord_users WHERE category='"+gid+"' AND userid='"+uid+"'";
+    dbpool.query(sql, function (err, result,fields) {
+        if (err) throw err;
+        if (Object.keys(result).length) {
+            pnick = result[0].nickname;
+            cid = result[0].charid;
+            sql = "SELECT statName,statValue from dice_stats WHERE char_id = '"+cid+"' AND (statName = 'PW' OR statName = 'PB')" ;
+            result = {};
+            dbpool.query(sql, function (err, result,fields) {
+                    if (err) throw err;
+                    if (Object.keys(result).length) {
+							while(i<Object.keys(result).length) {
+								if (result[i].statName == 'PW') {
+									pcwound = result[i].statValue;
+								} else if (result[i].statName == 'PB') {
+									pcbody = result[i].statValue;
+								}
+								i++;
+							}
+			    				if (pcwound >= 100) {
+								message.channel.send("injury: "+pnick+" has "+pcwound+"% wounds and is dying.");
+							} else if ((pcwound+pcbody)>= 100 ) {
+								message.channel.send("injury: "+pnick+" has "+pcwound+"% wounds, "+pcbody+"% body and is incapacitated.");
+							} else if (pcwound > 0 ) {
+                                                                message.channel.send("injury: "+pnick+" has "+pcwound+"% wounds and is injured.");
+                                                        } else if (pcbody > 0) {
+								message.channel.send("injury: "+pnick+" has "+pcbody+"% body and is bruised.");
+							} else {
+								message.channel.send("injury: "+pnick+" does not have any injuries.");
+							}
+                    } else {
+						message.channel.send("injury: "+pnick+" does not have any injuries.");
+                    }
+            })
+        } else {
+            message.channel.send("call10: Sorry, I could not find your character.");
+            return;
+        }
+   })
+}
+
 function registercharacter(message,s,dbpool) {
 	var game = ""
 	var gameid = 0;
@@ -745,6 +792,7 @@ console.log(message.content);
   I am <character>
   mysheet
   mymobilesheet
+  injury
   call10
   reroll
 
@@ -806,6 +854,10 @@ console.log(message.content);
 	if(cmd.startsWith('reroll')) {
 		reroll(message,dbpool);
 	}
+
+        if(cmd.startsWith('injury')) {
+                injury(message,dbpool);
+        }
 });
 
 client.login(settings.token);
