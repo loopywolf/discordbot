@@ -9,7 +9,6 @@ const { spawn } = require( 'child_process' );
 const mysql = require('mysql');
 const dbconfig = require('./dbconfig.json');
 const dbpool = mysql.createPool(dbconfig);
-const randomquotes = require('./random.json');
 
 //https://discordapp.com/oauth2/authorize?&client_id=450390626534424586&scope=bot&permissions=0
 
@@ -114,6 +113,84 @@ function injury(message,dbpool) {
             return;
         }
    })
+}
+
+function luck(message,dbpool,s) {
+	s = mysql_real_escape_string(s);
+	var cid = 0;
+	var pnick = '';
+	var luck = 0;
+
+	if(!gm(message)) {
+		message.channel.send("I am sorry.  You are not allowed to do this");
+	} else {
+		var parameters = s.split(" ");
+		if(parameters.length != 2) {
+			message.channel.send("luck: expecting 2 parameters (luck <amount> <character>");
+			return false;
+		}
+		luck = Number(parameters[0]);
+		pnick = parameters[1];
+		if(isNaN(luck)){
+			message.channel.send("luck: expecting numberical value for luck (luck <amount> <character>");
+			return false;
+		}
+		sql = "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='"+pnick+"'";
+		dbpool.query(sql, function (err, result,fields) {
+			if (err) throw err;
+			if (Object.keys(result).length) {
+				pnick = result[0].nickname;
+				cid = result[0].charid;
+				sql = "UPDATE dice_stats SET statValue = statValue + '"+luck+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = 'LUCK'";
+				result = {};
+				dbpool.query(sql, function (err, result,fields) {
+					if (err) throw err;
+					message.channel.send("Done - "+pnick+" received "+luck+" luck.");
+				})
+			} else {
+				message.channel.send("luck: can't find character "+pnick);
+			}
+		})
+	}
+}
+
+function xp(message,dbpool,s) {
+        s = mysql_real_escape_string(s);
+        var cid = 0;
+        var pnick = '';
+        var xp = 0;
+
+        if(!gm(message)) {
+                message.channel.send("I am sorry.  You are not allowed to do this");
+        } else {
+                var parameters = s.split(" ");
+                if(parameters.length != 2) {
+                        message.channel.send("xp: expecting 2 parameters (luck <amount> <character>");
+                        return false;
+                }
+                xp = Number(parameters[0]);
+                pnick = parameters[1];
+                if(isNaN(luck)){
+                        message.channel.send("xp: expecting numberical value for luck (luck <amount> <character>");
+                        return false;
+                }
+                sql = "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='"+pnick+"'";
+                dbpool.query(sql, function (err, result,fields) {
+                        if (err) throw err;
+                        if (Object.keys(result).length) {
+                                pnick = result[0].nickname;
+                                cid = result[0].charid;
+                                sql = "UPDATE dice_stats SET statValue = statValue + '"+luck+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = 'XP'";
+                                result = {};
+                                dbpool.query(sql, function (err, result,fields) {
+                                        if (err) throw err;
+                                        message.channel.send("xp: "+pnick+" received "+luck+" xp.");
+                                })
+                        } else {
+                                message.channel.send("xp: can't find character "+pnick);
+                        }
+                })
+        }
 }
 
 function registercharacter(message,s,dbpool) {
@@ -583,7 +660,7 @@ function callten(message,dbpool) {
 			    luck = result[0].statValue;
 			    if (luck > 0) {
 				    luck = luck - 1;
-				    sql = "UPDATE dice_stats SET statValue = '"+luck+"' WHERE dice_stats.char_id = 508 AND dice_stats.statName = 'LUCK'";
+				    sql = "UPDATE dice_stats SET statValue = '"+luck+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = 'LUCK'";
 			            result = {};
 				    dbpool.query(sql, function (err, result,fields) {
 					    if (err) throw err;
@@ -621,7 +698,7 @@ function reroll(message,dbpool) {
                             luck = result[0].statValue;
                             if (luck > 1) {
                                     luck = luck - 2;
-                                    sql = "UPDATE dice_stats SET statValue = '"+luck+"' WHERE dice_stats.char_id = 508 AND dice_stats.statName = 'LUCK'";
+                                    sql = "UPDATE dice_stats SET statValue = '"+luck+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = 'LUCK'";
                                     result = {};
                                     dbpool.query(sql, function (err, result,fields) {
                                             if (err) throw err;
@@ -857,6 +934,16 @@ console.log(message.content);
 
         if(cmd.startsWith('injury')) {
                 injury(message,dbpool);
+        }
+
+	if(cmd.startsWith('luck')) {
+		var s = cmd.substr(4+1);
+                luck(message,dbpool,s);
+        }
+
+	if(cmd.startsWith('xp')) {
+		var s = cmd.substr(2+1);
+                xp(message,dbpool,s);
         }
 });
 
