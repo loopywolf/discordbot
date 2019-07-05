@@ -119,20 +119,20 @@ function luck(message,dbpool,s) {
 	s = mysql_real_escape_string(s);
 	var cid = 0;
 	var pnick = '';
-	var luck = 0;
+	var charluck = 0;
 
 	if(!gm(message)) {
 		message.channel.send("I am sorry.  You are not allowed to do this");
 	} else {
 		var parameters = s.split(" ");
 		if(parameters.length != 2) {
-			message.channel.send("luck: expecting 2 parameters (luck <amount> <character>");
+			message.channel.send("luck: expecting 2 parameters (luck <amount> <character>)");
 			return false;
 		}
-		luck = Number(parameters[0]);
+		charluck = Number(parameters[0]);
 		pnick = parameters[1];
-		if(isNaN(luck)){
-			message.channel.send("luck: expecting numberical value for luck (luck <amount> <character>");
+		if(isNaN(charluck)){
+			message.channel.send("luck: expecting numberical value for luck (luck <amount> <character>)");
 			return false;
 		}
 		sql = "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='"+pnick+"'";
@@ -141,11 +141,11 @@ function luck(message,dbpool,s) {
 			if (Object.keys(result).length) {
 				pnick = result[0].nickname;
 				cid = result[0].charid;
-				sql = "UPDATE dice_stats SET statValue = statValue + '"+luck+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = 'LUCK'";
+				sql = "UPDATE dice_stats SET statValue = statValue + '"+charluck+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = 'LUCK'";
 				result = {};
 				dbpool.query(sql, function (err, result,fields) {
 					if (err) throw err;
-					message.channel.send("Done - "+pnick+" received "+luck+" luck.");
+					message.channel.send("Done - "+pnick+" received "+charluck+" luck.");
 				})
 			} else {
 				message.channel.send("luck: can't find character "+pnick);
@@ -158,20 +158,20 @@ function xp(message,dbpool,s) {
         s = mysql_real_escape_string(s);
         var cid = 0;
         var pnick = '';
-        var xp = 0;
+        var charxp = 0;
 
         if(!gm(message)) {
                 message.channel.send("I am sorry.  You are not allowed to do this");
         } else {
                 var parameters = s.split(" ");
                 if(parameters.length != 2) {
-                        message.channel.send("xp: expecting 2 parameters (luck <amount> <character>");
+                        message.channel.send("xp: expecting 2 parameters (luck <amount> <character>)");
                         return false;
                 }
-                xp = Number(parameters[0]);
+                charxp = Number(parameters[0]);
                 pnick = parameters[1];
-                if(isNaN(luck)){
-                        message.channel.send("xp: expecting numberical value for luck (luck <amount> <character>");
+                if(isNaN(charxp)){
+                        message.channel.send("xp: expecting numberical value for luck (luck <amount> <character>)");
                         return false;
                 }
                 sql = "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='"+pnick+"'";
@@ -180,11 +180,11 @@ function xp(message,dbpool,s) {
                         if (Object.keys(result).length) {
                                 pnick = result[0].nickname;
                                 cid = result[0].charid;
-                                sql = "UPDATE dice_stats SET statValue = statValue + '"+luck+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = 'XP'";
+                                sql = "UPDATE dice_stats SET statValue = statValue + '"+charxp+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = 'XP'";
                                 result = {};
                                 dbpool.query(sql, function (err, result,fields) {
                                         if (err) throw err;
-                                        message.channel.send("xp: "+pnick+" received "+luck+" xp.");
+                                        message.channel.send("xp: "+pnick+" received "+charxp+" xp.");
                                 })
                         } else {
                                 message.channel.send("xp: can't find character "+pnick);
@@ -875,6 +875,8 @@ console.log(message.content);
 
 [GM Commands]
   add <character> in <game>
+  xp <amount> <character>
+  luck <amount> <character>
 `;
 		message.channel.send("```css\n"+help+"```");
 	} else
