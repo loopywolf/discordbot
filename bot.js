@@ -126,13 +126,13 @@ function luck(message,dbpool,s) {
 	} else {
 		var parameters = s.split(" ");
 		if(parameters.length != 2) {
-			message.channel.send("luck: expecting 2 parameters (luck <amount> <character>)");
+			message.channel.send("luck: expecting 2 parameters (luck <character> <amount>)");
 			return false;
 		}
-		charluck = Number(parameters[0]);
-		pnick = parameters[1];
+		charluck = Number(parameters[1]);
+		pnick = parameters[0];
 		if(isNaN(charluck)){
-			message.channel.send("luck: expecting numberical value for luck (luck <amount> <character>)");
+			message.channel.send("luck: expecting numerical value for luck (luck <character> <amount>)");
 			return false;
 		}
 		sql = "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='"+pnick+"'";
@@ -154,6 +154,47 @@ function luck(message,dbpool,s) {
 	}
 }
 
+function setvalue(message,dbpool,s) {
+        s = mysql_real_escape_string(s);
+        var cid = 0;
+        var pnick = '';
+        var value = 0;
+		var statName = '';
+
+        if(!gm(message)) {
+                message.channel.send("I am sorry.  You are not allowed to do this");
+        } else {
+                var parameters = s.split(" ");
+                if(parameters.length != 3) {
+                        message.channel.send("setvalue: expecting 3 parameters (setvalue <stat> <value> <character>)");
+                        return false;
+                }
+		statName = parameters[1];
+                value = Number(parameters[2]);
+                pnick = parameters[0];
+                if(isNaN(value)){
+                        message.channel.send("setvalue: expecting numerical value for value (setvalue <stat> <value> <character>)");
+                        return false;
+                }
+                sql = "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='"+pnick+"'";
+                dbpool.query(sql, function (err, result,fields) {
+                        if (err) throw err;
+                        if (Object.keys(result).length) {
+                                pnick = result[0].nickname;
+                                cid = result[0].charid;
+                                sql = "UPDATE dice_stats SET statValue = '"+value+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = '"+statName+"'";
+                                result = {};
+                                dbpool.query(sql, function (err, result,fields) {
+                                        if (err) throw err;
+                                        message.channel.send("setvalue: "+statName+" set to "+value+" for "+pnick);
+                                })
+                        } else {
+                                message.channel.send("setvalue: can't find character "+pnick);
+                        }
+                })
+        }
+}
+
 function xp(message,dbpool,s) {
         s = mysql_real_escape_string(s);
         var cid = 0;
@@ -165,13 +206,13 @@ function xp(message,dbpool,s) {
         } else {
                 var parameters = s.split(" ");
                 if(parameters.length != 2) {
-                        message.channel.send("xp: expecting 2 parameters (luck <amount> <character>)");
+                        message.channel.send("xp: expecting 2 parameters (luck <character> <amount>)");
                         return false;
                 }
-                charxp = Number(parameters[0]);
-                pnick = parameters[1];
+                charxp = Number(parameters[1]);
+                pnick = parameters[0];
                 if(isNaN(charxp)){
-                        message.channel.send("xp: expecting numberical value for luck (luck <amount> <character>)");
+                        message.channel.send("xp: expecting numerical value for luck (luck <character> <amount>)");
                         return false;
                 }
                 sql = "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='"+pnick+"'";
@@ -219,8 +260,8 @@ function registercharacter(message,s,dbpool) {
 			if (Object.keys(result).length) {
 				gameid=result[0].id;
 				result = {};
-				// sql = "INSERT INTO dice_characters (name,game_id,aspects,image_path,map_x,map_y) VALUES ('"+nickname+"','"+gameid+"','','','','')";
-				sql = "INSERT INTO dice_characters (name,game_id,aspects,image_path,map_x,map_y) SELECT '"+nickname+"','"+gameid+"',''.'','','' FROM DUAL WHERE NOT EXISTS (SELECT name FROM dice_characters WHERE name='"+nickname+"')";
+				sql = "INSERT INTO dice_characters (name,game_id,aspects,image_path,map_x,map_y) VALUES ('"+nickname+"','"+gameid+"','','','','')";
+				//sql = "INSERT INTO dice_characters (name,game_id,aspects,image_path,map_x,map_y) SELECT '"+nickname+"','"+gameid+"',''.'','','' FROM DUAL WHERE NOT EXISTS (SELECT name FROM dice_characters WHERE name='"+nickname+"')";
 				console.log(sql);
 				dbpool.query(sql, function (err, result, fields) {
 					if (err) throw err;
@@ -875,8 +916,9 @@ console.log(message.content);
 
 [GM Commands]
   add <character> in <game>
-  xp <amount> <character>
-  luck <amount> <character>
+  xp <character> <amount>
+  luck <character> <amount>
+  setvalue <character> <stat> <amount>
 `;
 		message.channel.send("```css\n"+help+"```");
 	} else
@@ -946,6 +988,11 @@ console.log(message.content);
 	if(cmd.startsWith('xp')) {
 		var s = cmd.substr(2+1);
                 xp(message,dbpool,s);
+        }
+
+        if(cmd.startsWith('setvalue')) {
+                var s = cmd.substr(8+1);
+                setvalue(message,dbpool,s);
         }
 });
 
