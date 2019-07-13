@@ -68,13 +68,38 @@ function gm(message) {
 	}
 }
 
-function injury(message,dbpool) {
+function groupinjury(message,dbpool,s) {
+        if(!gm(message)) {
+                message.channel.send("I am sorry.  You are not allowed to do this");
+        } else {
+		s = mysql_real_escape_string(s);
+		var parameters = s.split(" ");
+		if(parameters.length != 1) {
+			message.channel.send("groupinjury: expecting 1 parameter (groupinjury <game>)");
+			return 0;
+		}
+	}
+}
+
+function injury(message,dbpool,s="") {
     var uid = message.author.id;
     var gid = message.channel.parent.id;
-	var i=0;
-	var pcbody=0;
-	var pcwound=0;
-    sql = "SELECT nickname,char_id AS charid FROM discord_users WHERE category='"+gid+"' AND userid='"+uid+"'";
+    var i=0;
+    var pcbody=0;
+    var pcwound=0;
+
+    if ( s == "" ) {
+            sql = "SELECT nickname,char_id AS charid FROM discord_users WHERE category='"+gid+"' AND userid='"+uid+"'";
+    } else {
+	    s = mysql_real_escape_string(s);s = mysql_real_escape_string(s);
+	    var parameters = s.split(" ");
+	    if(parameters.length != 1) {
+		    message.channel.send("injury: expecting 1 parameter (groupinjury <character>)");
+		    return 0;
+	    }
+            sql = "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='"+s+"'";
+    }
+
     dbpool.query(sql, function (err, result,fields) {
         if (err) throw err;
         if (Object.keys(result).length) {
@@ -109,7 +134,7 @@ function injury(message,dbpool) {
                     }
             })
         } else {
-            message.channel.send("call10: Sorry, I could not find your character.");
+            message.channel.send("injury: Sorry, I could not find your character.");
             return;
         }
    })
@@ -166,22 +191,27 @@ function setvalue(message,dbpool,s) {
         } else {
                 var parameters = s.split(" ");
                 if(parameters.length != 3) {
-                        message.channel.send("setvalue: expecting 3 parameters (setvalue <stat> <value> <character>)");
+                        message.channel.send("setvalue: expecting 3 parameters (setvalue <character> <stat> <value>)");
                         return false;
                 }
 		statName = parameters[1];
                 value = Number(parameters[2]);
                 pnick = parameters[0];
                 if(isNaN(value)){
-                        message.channel.send("setvalue: expecting numerical value for value (setvalue <stat> <value> <character>)");
+                        message.channel.send("setvalue: expecting numerical value for value (setvalue <character> <stat> <value>)");
                         return false;
                 }
                 sql = "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='"+pnick+"'";
                 dbpool.query(sql, function (err, result,fields) {
                         if (err) throw err;
                         if (Object.keys(result).length) {
-                                pnick = result[0].nickname;
                                 cid = result[0].charid;
+				sql = "INSERT INTO dice_stats (char_id, statName, statValue, tally) VALUES ('"+cid+"','"+statName+"','','')";
+				sanity={};
+				dbpool.query(sql, function (err,sanity,fields) {
+					if (err) throw err;
+				})
+                                pnick = result[0].nickname;
                                 sql = "UPDATE dice_stats SET statValue = '"+value+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = '"+statName+"'";
                                 result = {};
                                 dbpool.query(sql, function (err, result,fields) {
@@ -234,6 +264,45 @@ function xp(message,dbpool,s) {
         }
 }
 
+function bonus(message,dbpool,s) {
+        s = mysql_real_escape_string(s);
+        var cid = 0;
+        var pnick = '';
+        var charbonus = 0;
+
+        if(!gm(message)) {
+                message.channel.send("I am sorry.  You are not allowed to do this");
+        } else {
+                var parameters = s.split(" ");
+                if(parameters.length != 2) {
+                        message.channel.send("bonus: expecting 2 parameters (bonus <character> <amount>)");
+                        return false;
+                }
+                charbonus = Number(parameters[1]);
+                pnick = parameters[0];
+                if(isNaN(charbonus)){
+                        message.channel.send("bonus: expecting numerical value for bonus (bonus <character> <amount>)");
+                        return false;
+                }
+                sql = "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='"+pnick+"'";
+                dbpool.query(sql, function (err, result,fields) {
+                        if (err) throw err;
+                        if (Object.keys(result).length) {
+                                pnick = result[0].nickname;
+                                cid = result[0].charid;
+                                sql = "UPDATE dice_stats SET statValue = statValue + '"+charbonus+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = 'BONUS'";
+                                result = {};
+                                dbpool.query(sql, function (err, result,fields) {
+                                        if (err) throw err;
+                                        message.channel.send("bonus: "+pnick+" received "+charbonus+" points.");
+                                })
+                        } else {
+                                message.channel.send("bonus: can't find character "+pnick);
+                        }
+                })
+        }
+}
+
 function registercharacter(message,s,dbpool) {
 	var game = ""
 	var gameid = 0;
@@ -265,8 +334,30 @@ function registercharacter(message,s,dbpool) {
 				console.log(sql);
 				dbpool.query(sql, function (err, result, fields) {
 					if (err) throw err;
+					sql = "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='"+nickname+"'";
+dbpool.query(sql, function (err, result,fields) {
+	if (err) throw err;
+	cid = result[0].charid;
+	result = {};
+	sql="INSERT INTO dice_stats(char_id, statName, statValue, tally) VALUES ('"+cid+"','LUCK',5,'');"
+    dbpool.query(sql, function (err, result,fields) { if (err) throw err; });
+	result = {};
+	sql="INSERT INTO dice_stats(char_id, statName, statValue, tally) VALUES ('"+cid+"','XP',0,'');"
+	dbpool.query(sql, function (err, result,fields) { if (err) throw err; });
+	result = {};
+	sql="INSERT INTO dice_stats(char_id, statName, statValue, tally) VALUES ('"+cid+"','BONUS',0,'???');"
+	dbpool.query(sql, function (err, result,fields) { if (err) throw err; });
+	result = {};
+        sql="INSERT INTO dice_stats(char_id, statName, statValue, tally) VALUES ('"+cid+"','PB',0,'');"
+        dbpool.query(sql, function (err, result,fields) { if (err) throw err; });
+	result = {};
+        sql="INSERT INTO dice_stats(char_id, statName, statValue, tally) VALUES ('"+cid+"','PW',0,'');"
+	q
+        dbpool.query(sql, function (err, result,fields) { if (err) throw err; });
+});
 					message.channel.send("Okay added "+nickname+" to "+game);
 				});
+
 
 			} else {
 				message.channel.send("Game "+game+" was not found.");
@@ -613,6 +704,8 @@ SHEET: ${pnick}
 stats = `  #STATS
   |${statagl}|${statbrn}|${statcrd}|${statovh}|
   |${statpcn}|${statper}|${statstr}|${statwpr}|
+
+  #SCORES
   |${statluck}|${statxp}|
 `;
 			} else {
@@ -621,6 +714,8 @@ stats = `  #STATS
   |${statcrd}|${statovh}|
   |${statpcn}|${statper}|
   |${statstr}|${statwpr}|
+
+  #SCORES
   |${statluck}|${statxp}|
 `;
 			}
@@ -648,6 +743,7 @@ pcsheet += stats + `
                         console.log(pcsheet);
 			var pcs = "```css"+pcsheet+"```" 
                         message.channel.send(pcs);
+			message.channel.send("https://monfur.ca/dstory/sheet.php?name="+pnick);
                 }
         });
                 } else {
@@ -899,26 +995,27 @@ console.log(message.content);
 	if (cmd.startsWith('help')) {
 		var help = `
 [General Commands]:
-  icanplay <game> <dates>
-  diceroll
-  roll <level> vs <difficulty>
-  calc <level> vs <difficulty> with <roll>
-  sheet <character>
-  mobilesheet <character>
+  .icanplay <game> <dates>
+  .diceroll
+  .roll <level> vs <difficulty>
+  .calc <level> vs <difficulty> with <roll>
+  .sheet <character>
+  .mobilesheet <character>
+  .injury <character>
 
 [Player Commands]
-  I am <character>
-  mysheet
-  mymobilesheet
-  injury
-  call10
-  reroll
+  .I am <character>
+  .mysheet
+  .mymobilesheet
+  .call10
+  .reroll
 
 [GM Commands]
-  add <character> in <game>
-  xp <character> <amount>
-  luck <character> <amount>
-  setvalue <character> <stat> <amount>
+  .add <character> in <game>
+  .bonus <character> <amount>
+  .xp <character> <amount>
+  .luck <character> <amount>
+  .setvalue <character> <stat> <amount>
 `;
 		message.channel.send("```css\n"+help+"```");
 	} else
@@ -977,7 +1074,8 @@ console.log(message.content);
 	}
 
         if(cmd.startsWith('injury')) {
-                injury(message,dbpool);
+		var s = cmd.substr(6+1);
+                injury(message,dbpool,s);
         }
 
 	if(cmd.startsWith('luck')) {
@@ -993,6 +1091,11 @@ console.log(message.content);
         if(cmd.startsWith('setvalue')) {
                 var s = cmd.substr(8+1);
                 setvalue(message,dbpool,s);
+        }
+
+	if(cmd.startsWith('bonus')) {
+                var s = cmd.substr(5+1);
+                bonus(message,dbpool,s);
         }
 });
 
