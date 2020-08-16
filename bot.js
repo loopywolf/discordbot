@@ -374,7 +374,6 @@ dbpool.query(sql, function (err, result,fields) {
 	}
 }
 
-
 function iam(message,s,dbpool) {
 	var uid = message.author.id;
 	var gid = message.channel.parent.id;
@@ -905,10 +904,19 @@ function sendRollResult(message,s,dice,crit=0,crittrue=0,previous=""){
 	var result = Math.round(percentile * (dice+difficulty)) - difficulty;
 	console.log("percentile="+percentile+" dice="+dice+" difficulty="+difficulty+" result="+result);
 	// message.channel.send("roll: "+user+" rolled "+s+" and got "+reportPercentile+"% = "+result);
-	palindrome(message, reportPercentile, s, result, crit, dice, crittrue, previous);
-}
+	//palindrome(message, reportPercentile, s, result, crit, dice, crittrue, previous);
+    if(percentile>0.95) {
+        //new critical rolls - 1 level only for now
+        percentile = Math.random();
+        result = Math.round((1+percentile) * (dice+difficulty)) - difficulty;
+        reportPercentile = reportPercentile+"(100%) + " + Math.round(100 * percentile);
+        console.log("critical "+percentile);
+    }//if
 
-function palindrome(message, number , s, result, crit=0, dice, crittrue=0, previous="") {
+    message.channel.send("roll: "+message.author.username+" rolled "+s+" and got "+reportPercentile+"% = "+result);
+}//F sendRollResult
+
+function palindrome(message, number , s, result, crit=0, dice, crittrue=0, previous="") { //33 is the same backwards - I'm retiring this
 	var rem, temp, final = 0;
 	var finalresult = 0;
 	var i = 0;
@@ -919,7 +927,7 @@ function palindrome(message, number , s, result, crit=0, dice, crittrue=0, previ
 		number = parseInt(number/10);
 		final = final*10+rem;
 	}
-	if(final==temp && temp>10) {
+	if(final==temp && temp>10 && false) { //number is the same backwards as forwards - shorted out for time being
 		newcrit = crit + dice;
 		crittrue++;
 		previous += temp + "% *(doubles)* + ";
