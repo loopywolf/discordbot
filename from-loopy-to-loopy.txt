@@ -1,0 +1,8 @@
+I got into a real mess with GIT, so here's what I ask you do next time:
+1. A request from fatrobin - work on a branch (like at work)
+2. you are working with git, so remember to check your git status (git pull?) before you touch any code
+3. Always remember to check that what you are playing with works before changing, PLEASE
+4. the steps are:
+- git pull
+- git commit
+- git push
