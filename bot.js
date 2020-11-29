@@ -61,14 +61,11 @@ function mysql_real_escape_string (str) {
     });
 }
 function gm(message) {
-	//if (message.member.roles.find("name","@gm")) {
-    var role = message.member.roles.find( role => role.name === "@gm" );
     console.log('gm?');
-    if(role) {
-    	return true;
-	} else {
-		return false;
-	}
+    if(!message.member.roles.cache.find(r=>["@gm"].includes(r.name)))
+        return false;
+    else
+        return true;
 }
 
 function groupinjury(message,dbpool,s) {
@@ -190,6 +187,9 @@ function setvalue(message,dbpool,s) {	//updated to .setvalue Adept BRN = 6
         var value = 0;
 		var statName = '';
 
+        //console.log("SV"); //is a message at this point
+        //console.log(message);
+
         if(!gm(message)) {
                 message.channel.send("I am sorry.  You are not allowed to do this");
         } else {
@@ -214,13 +214,15 @@ function setvalue(message,dbpool,s) {	//updated to .setvalue Adept BRN = 6
                         if (err) throw err;
                         if (Object.keys(result).length) {
                                 cid = result[0].charid;
-				sql = "INSERT INTO dice_stats (char_id, statName, statValue, tally) VALUES ('"+cid+"','"+statName+"','','')";
+				sql = "INSERT INTO dice_stats (char_id, statName, statValue, tally) VALUES ('"+cid+"','"+statName+"',"+value+",'') ON DUPLICATE KEY UPDATE statValue = "+value;
+                console.log("sql="+sql);
 				sanity={};
 				dbpool.query(sql, function (err,sanity,fields) {
 					if (err) throw err;
 				})
                                 pnick = result[0].nickname;
                                 sql = "UPDATE dice_stats SET statValue = '"+value+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = '"+statName+"'";
+                                console.log("sql="+sql);
                                 result = {};
                                 dbpool.query(sql, function (err, result,fields) {
                                         if (err) throw err;
@@ -1098,6 +1100,7 @@ client.on('message', message => {
 
 console.log(message.author.id + ":" + message.author.username);
 console.log(message.content);
+//console.log(message);   //DEBUG
 
     // parse command
     var regex = /^\.(.*)$/
@@ -1206,6 +1209,8 @@ console.log(message.content);
 
         if(cmd.startsWith('setvalue')) {
                 var s = cmd.substr(8+1);
+                //console.log("AB message:"); //is still a amessage at this point
+                //console.log(message);
                 setvalue(message,dbpool,s);
         }
 
