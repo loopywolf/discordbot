@@ -61,11 +61,14 @@ function mysql_real_escape_string (str) {
     });
 }
 function gm(message) {
+	//if (message.member.roles.find("name","@gm")) {
+    var role = message.member.roles.find( role => role.name === "@gm" );
     console.log('gm?');
-    if(!message.member.roles.cache.find(r=>["@gm"].includes(r.name)))
-        return false;
-    else
-        return true;
+    if(role) {
+    	return true;
+	} else {
+		return false;
+	}
 }
 
 function groupinjury(message,dbpool,s) {
@@ -187,8 +190,6 @@ function setvalue(message,dbpool,s) {	//updated to .setvalue Adept BRN = 6
         var value = 0;
 		var statName = '';
 
-        //console.log("SV"); //is a message at this point
-        //console.log(message);
         if(!gm(message)) {
                 message.channel.send("I am sorry.  You are not allowed to do this");
         } else {
@@ -213,15 +214,13 @@ function setvalue(message,dbpool,s) {	//updated to .setvalue Adept BRN = 6
                         if (err) throw err;
                         if (Object.keys(result).length) {
                                 cid = result[0].charid;
-				sql = "INSERT INTO dice_stats (char_id, statName, statValue, tally) VALUES ('"+cid+"','"+statName+"',"+value+",'') ON DUPLICATE KEY UPDATE statValue = "+value;
-                //console.log("sql="+sql);
+				sql = "INSERT INTO dice_stats (char_id, statName, statValue, tally) VALUES ('"+cid+"','"+statName+"','','')";
 				sanity={};
 				dbpool.query(sql, function (err,sanity,fields) {
 					if (err) throw err;
 				})
                                 pnick = result[0].nickname;
                                 sql = "UPDATE dice_stats SET statValue = '"+value+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = '"+statName+"'";
-                                //console.log("sql="+sql);
                                 result = {};
                                 dbpool.query(sql, function (err, result,fields) {
                                         if (err) throw err;
@@ -374,6 +373,7 @@ dbpool.query(sql, function (err, result,fields) {
 		});
 	}
 }
+
 
 function iam(message,s,dbpool) {
 	var uid = message.author.id;
@@ -905,19 +905,10 @@ function sendRollResult(message,s,dice,crit=0,crittrue=0,previous=""){
 	var result = Math.round(percentile * (dice+difficulty)) - difficulty;
 	console.log("percentile="+percentile+" dice="+dice+" difficulty="+difficulty+" result="+result);
 	// message.channel.send("roll: "+user+" rolled "+s+" and got "+reportPercentile+"% = "+result);
-	//palindrome(message, reportPercentile, s, result, crit, dice, crittrue, previous);
-    if(percentile>0.95) {
-        //new critical rolls - 1 level only for now
-        percentile = Math.random();
-        result = Math.round((1+percentile) * (dice+difficulty)) - difficulty;
-        reportPercentile = reportPercentile+"(100%) + " + Math.round(100 * percentile);
-        console.log("critical "+percentile);
-    }//if
+	palindrome(message, reportPercentile, s, result, crit, dice, crittrue, previous);
+}
 
-    message.channel.send("roll: "+message.author.username+" rolled "+s+" and got "+reportPercentile+"% = "+result);
-}//F sendRollResult
-
-function palindrome(message, number , s, result, crit=0, dice, crittrue=0, previous="") { //33 is the same backwards - I'm retiring this
+function palindrome(message, number , s, result, crit=0, dice, crittrue=0, previous="") {
 	var rem, temp, final = 0;
 	var finalresult = 0;
 	var i = 0;
@@ -928,11 +919,10 @@ function palindrome(message, number , s, result, crit=0, dice, crittrue=0, previ
 		number = parseInt(number/10);
 		final = final*10+rem;
 	}
-	if(final==temp && temp>10 && false) { //number is the same backwards as forwards - shorted out for time being
+	if(final==temp && temp>10) {
 		newcrit = crit + dice;
 		crittrue++;
 		previous += temp + "% *(doubles)* + ";
-		console.log("doubles 10x"+final+" 1x"+temp);
 		roll(message,s,newcrit,crittrue,previous);
 	} else if (crittrue>0 && final!=temp) {
 		finalresult = crit + result;
@@ -1099,7 +1089,6 @@ client.on('message', message => {
 
 console.log(message.author.id + ":" + message.author.username);
 console.log(message.content);
-//console.log(message);   //DEBUG
 
     // parse command
     var regex = /^\.(.*)$/
@@ -1208,8 +1197,6 @@ console.log(message.content);
 
         if(cmd.startsWith('setvalue')) {
                 var s = cmd.substr(8+1);
-                //console.log("AB message:"); //is still a amessage at this point
-                //console.log(message);
                 setvalue(message,dbpool,s);
         }
 

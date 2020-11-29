@@ -5,7 +5,8 @@
   "main": "bot.js",
   "author": "ANDREW-PIDCOCK",
   "dependencies": {
-    "discord.js": "^11.4.2",
-    "sprintf-js": "^1.1.1"
+    "discord.js": "^12.5.1",
+    "sprintf-js": "^1.1.2",
+    "uws": "^200.0.0"
   }
 }

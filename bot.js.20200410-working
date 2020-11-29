@@ -14,7 +14,7 @@ const dbpool = mysql.createPool(dbconfig);
 
 function getNickname(myUser,myGuildID) {
 	var nickname = client.guilds.find('id',myGuildID).members.find('id',myUser.id).nickname;
-    if (nickname == null) { nickname = myUser.username; }
+	if (nickname == null) { nickname = myUser.username; }
 	return nickname;
 }
 
@@ -61,11 +61,11 @@ function mysql_real_escape_string (str) {
     });
 }
 function gm(message) {
-    console.log('gm?');
-    if(!message.member.roles.cache.find(r=>["@gm"].includes(r.name)))
-        return false;
-    else
-        return true;
+	if (message.member.roles.find("name","@gm")) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 function groupinjury(message,dbpool,s) {
@@ -180,29 +180,23 @@ function luck(message,dbpool,s) {
 	}
 }
 
-function setvalue(message,dbpool,s) {	//updated to .setvalue Adept BRN = 6
+function setvalue(message,dbpool,s) {
         s = mysql_real_escape_string(s);
         var cid = 0;
         var pnick = '';
         var value = 0;
 		var statName = '';
 
-        //console.log("SV"); //is a message at this point
-        //console.log(message);
         if(!gm(message)) {
                 message.channel.send("I am sorry.  You are not allowed to do this");
         } else {
                 var parameters = s.split(" ");
-                if(parameters.length != 4) {
-                    message.channel.send("setvalue: expecting 4 parameters (setvalue <character> <stat> = <value>)");
-                    return false;
+                if(parameters.length != 3) {
+                        message.channel.send("setvalue: expecting 3 parameters (setvalue <character> <stat> <value>)");
+                        return false;
                 }
-                if(parameters[2]!="=") {
-                	message.channel.send("setvalue: expecting 3rd parameter to be =");
-                	return false;
-                }
-				statName = parameters[1];
-                value = Number(parameters[3]);
+		statName = parameters[1];
+                value = Number(parameters[2]);
                 pnick = parameters[0];
                 if(isNaN(value)){
                         message.channel.send("setvalue: expecting numerical value for value (setvalue <character> <stat> <value>)");
@@ -213,15 +207,13 @@ function setvalue(message,dbpool,s) {	//updated to .setvalue Adept BRN = 6
                         if (err) throw err;
                         if (Object.keys(result).length) {
                                 cid = result[0].charid;
-				sql = "INSERT INTO dice_stats (char_id, statName, statValue, tally) VALUES ('"+cid+"','"+statName+"',"+value+",'') ON DUPLICATE KEY UPDATE statValue = "+value;
-                //console.log("sql="+sql);
+				sql = "INSERT INTO dice_stats (char_id, statName, statValue, tally) VALUES ('"+cid+"','"+statName+"','','')";
 				sanity={};
 				dbpool.query(sql, function (err,sanity,fields) {
 					if (err) throw err;
 				})
                                 pnick = result[0].nickname;
                                 sql = "UPDATE dice_stats SET statValue = '"+value+"' WHERE dice_stats.char_id = '"+cid+"' AND dice_stats.statName = '"+statName+"'";
-                                //console.log("sql="+sql);
                                 result = {};
                                 dbpool.query(sql, function (err, result,fields) {
                                         if (err) throw err;
@@ -374,6 +366,7 @@ dbpool.query(sql, function (err, result,fields) {
 		});
 	}
 }
+
 
 function iam(message,s,dbpool) {
 	var uid = message.author.id;
@@ -864,7 +857,6 @@ function reroll(message,dbpool) {
 
 function roll(message,s,crit=0,crittrue=0,previous="") {
 	var user = message.author.username;
-    var uid = message.author.id;
 	var finalresult = 0;
 	console.log("roll cmd="+s);
 	//quick function that takes roll 8 vs 5
@@ -879,45 +871,24 @@ function roll(message,s,crit=0,crittrue=0,previous="") {
 	}
 	var dice = parseInt(parameters[0]);
 	if( isNaN(dice)) {
-        rollWithStat( message,s,crit=0,crittrue=0,previous="" ); //this has to be made into an async call of its own :(
-        return;
+		message.channel.send("roll: "+parameters[0]+" isn't a number.");
+		return;
 	}
 	var difficulty = parseInt(parameters[2]);
 	if( isNaN(difficulty)) {
 		message.channel.send("roll: "+parameters[2]+" isn't a number.");
 		return;
 	}
-	sendRollResult(message,s,dice);
-}
-
-function sendRollResult(message,s,dice,crit=0,crittrue=0,previous=""){
-	var parameters = s.split(" ");
-
-	var difficulty = parseInt(parameters[2]);
-	if( isNaN(difficulty)) {
-		message.channel.send("roll: "+parameters[2]+" isn't a number.");
-		return;
-	}
-
 	console.log("dice="+dice+" difficulty="+difficulty);
 	var percentile = Math.random();
 	var reportPercentile = Math.round(100 * percentile);
 	var result = Math.round(percentile * (dice+difficulty)) - difficulty;
 	console.log("percentile="+percentile+" dice="+dice+" difficulty="+difficulty+" result="+result);
 	// message.channel.send("roll: "+user+" rolled "+s+" and got "+reportPercentile+"% = "+result);
-	//palindrome(message, reportPercentile, s, result, crit, dice, crittrue, previous);
-    if(percentile>0.95) {
-        //new critical rolls - 1 level only for now
-        percentile = Math.random();
-        result = Math.round((1+percentile) * (dice+difficulty)) - difficulty;
-        reportPercentile = reportPercentile+"(100%) + " + Math.round(100 * percentile);
-        console.log("critical "+percentile);
-    }//if
+	palindrome(message, reportPercentile, s, result, crit, dice, crittrue, previous); 
+}
 
-    message.channel.send("roll: "+message.author.username+" rolled "+s+" and got "+reportPercentile+"% = "+result);
-}//F sendRollResult
-
-function palindrome(message, number , s, result, crit=0, dice, crittrue=0, previous="") { //33 is the same backwards - I'm retiring this
+function palindrome(message, number , s, result, crit=0, dice, crittrue=0, previous="") {
 	var rem, temp, final = 0;
 	var finalresult = 0;
 	var i = 0;
@@ -928,11 +899,10 @@ function palindrome(message, number , s, result, crit=0, dice, crittrue=0, previ
 		number = parseInt(number/10);
 		final = final*10+rem;
 	}
-	if(final==temp && temp>10 && false) { //number is the same backwards as forwards - shorted out for time being
+	if(final==temp && temp>10) {
 		newcrit = crit + dice;
 		crittrue++;
 		previous += temp + "% *(doubles)* + ";
-		console.log("doubles 10x"+final+" 1x"+temp);
 		roll(message,s,newcrit,crittrue,previous);
 	} else if (crittrue>0 && final!=temp) {
 		finalresult = crit + result;
@@ -1002,116 +972,29 @@ function myid(message) {
 	message.channel.send("myid: "+user+" checked self-id "+id);
 }
 
-function rollWithStat(message,s,crit=0,crittrue=0,previous="",statName) {
-    var user = message.author.username;
-    var uid = message.author.id;
-    var finalresult = 0;
-    console.log("rollWithStat cmd="+s);
-    //quick function that takes roll 8 vs 5
-    var parameters = s.split(" ");
-
-    statName = parameters[0];
-
-    console.log("rollWithStat: trying username "+user+" as chr for "+statName);
-    sql = 
-'SELECT ds.statValue '+
-'FROM dice_characters dc INNER JOIN dice_stats ds ON (ds.char_id = dc.id) '+
-'WHERE dc.name = "'+user+'" '+
-'AND ds.statName = "'+statName+'"';
-    console.log('query ='+sql);
-    dbpool.query(sql, function (err, result,fields) {
-        if (err) throw err;
-        console.log('queried.');
-        if (Object.keys(result).length) {
-            dice = result[0].statValue;
-            message.channel.send(user+"'s "+statName+" is "+dice);
-            console.log("rollWithStat1: "+statName+" = "+dice);   
-            difficulty =              
-           	sendRollResult(message,s,dice);
-            return;
-        } else {
-        	console.log("rollWithStat: nothing found in dB");
-		    //simple stupid brute-force way to fix this
-		    console.log("rollWithStat: trying discord user "+uid+" as chr for "+statName);
-		    sql = 
-		/*'SELECT ds.statValue '+
-		'FROM discord_users du INNER JOIN dice_stats ds ON (ds.char_id = du.char_id) '+
-		'WHERE du.nickname = "'+user+'" '+
-		'AND ds.statName = "'+statName+'"';*/
-'select statName,statValue,nickname'+
-' from discord_users du INNER JOIN dice_stats ds ON (du.char_id = ds.char_id)'+
-' WHERE du.userid = '+uid+ //217438047803932672
-' AND statName = "'+statName+'"';
-		    dbpool.query(sql, function (err, result,fields) {
-		        if (err) throw err;
-		        if (Object.keys(result).length) {
-		            dice = result[0].statValue;
-		            iam = result[0].nickname;
-		            console.log("rollWithStat2: "+statName+" = "+dice);  
-                    message.channel.send(iam+"'s "+statName+" is "+dice+"(using I am)");
-		            sendRollResult(message,s,dice);            
-		            return;
-		        } else
-		        	console.log("rollWithStat: nothing found for discord.");
-                    message.channel.send("Nothing found for "+statName);
-		        //if object keys
-		    })
-        }
-        //if object keys
-    })
-
-}//F
-
-function sendStatResult(dice,difficulty,message,reportPercentile,s,result,crit,dice,crit,previous) {
-    //var dice = getStat( statName, user, uid );
-
-    //var difficulty = parseInt(parameters[2]);
-    if( isNaN(difficulty)) {
-        message.channel.send("sendStatResult: "+parameters[2]+" isn't a number.");
-        return;
-    }
-    console.log("dice="+dice+" difficulty="+difficulty);
-    var percentile = Math.random();
-    var reportPercentile = Math.round(100 * percentile);
-    var result = Math.round(percentile * (dice+difficulty)) - difficulty;
-    console.log("percentile="+percentile+" dice="+dice+" difficulty="+difficulty+" result="+result);
-    // message.channel.send("roll: "+user+" rolled "+s+" and got "+reportPercentile+"% = "+result);
-    palindrome(message, reportPercentile, s, result, crit, dice, crittrue, previous); 
-}
-
-/* ---------------------------------------------------------------------------
-     CCCC  OOO  DDDD  EEEEE
-    C     O   O D   D E
-    C     O   O D   D EEE
-    C     O   O D   D E
-     CCCC  OOO  DDDD  EEEEE
-
------------------------------------------------------------------------------- */
-
 client.on('ready',() => {
-    console.log("online");
+	console.log("online");
 });
 
 client.on('message', message => {
-    console.log( message.content );
-    //if (message.author === client.user) return;
-    //if (!message.content.startsWith(".") || message.author.bot) return;
+	console.log( message.content );
+	//if (message.author === client.user) return;
+	//if (!message.content.startsWith(".") || message.author.bot) return;
 
 console.log(message.author.id + ":" + message.author.username);
 console.log(message.content);
-//console.log(message);   //DEBUG
 
-    // parse command
-    var regex = /^\.(.*)$/
-    var string = message.content;
-    var result = string.match(regex);
-    if (!result) {
-        return;
-    }   
-    cmd = result[1];
-    
-    if (cmd.startsWith('help')) {
-        var help = `
+	// parse command
+	var regex = /^\.(.*)$/
+	var string = message.content;
+	var result = string.match(regex);
+	if (!result) {
+		return;
+	}	
+	cmd = result[1];
+	
+	if (cmd.startsWith('help')) {
+		var help = `
 [General Commands]:
   .icanplay <game> <dates>
   .diceroll
@@ -1135,81 +1018,79 @@ console.log(message.content);
   .luck <character> <amount>
   .setvalue <character> <stat> <amount>
 `;
-        message.channel.send("```css\n"+help+"```");
-    } else
-    if(cmd.startsWith('icanplay')) {
-        canplay(message,cmd.substr(8+1));
-    } else
-    if(cmd.startsWith('roll')) {
-        var s = cmd.substr(4+1);
-        console.log("s="+s);
-        roll(message,s);
-    }
-    if(cmd.startsWith('calc')) {
-        var s = cmd.substr(4+1);
-        console.log("s="+s);
-        calc(message,s);
-    }
+		message.channel.send("```css\n"+help+"```");
+	} else
+	if(cmd.startsWith('icanplay')) {
+		canplay(message,cmd.substr(8+1));
+	} else
+	if(cmd.startsWith('roll')) {
+		var s = cmd.substr(4+1);
+		console.log("s="+s);
+		roll(message,s);
+	}
+	if(cmd.startsWith('calc')) {
+		var s = cmd.substr(4+1);
+		console.log("s="+s);
+		calc(message,s);
+	}
 
-    if(cmd.startsWith('catid')) {
-        catid(message);
-    }
+	if(cmd.startsWith('catid')) {
+		catid(message);
+	}
 
-    if(cmd.startsWith('myid')) {
-        myid(message);
-    }
-    if(cmd.startsWith('mysheet')) {
-        sheet(message,dbpool,s="");
-    }
-    if(cmd.startsWith('sheet')) {
-        var s = cmd.substr(5+1);
-        sheet(message,dbpool,s);
-    }
-    if(cmd.startsWith('mymobilesheet')) {
-        sheet(message,dbpool,s="",1);
-    }
-    if(cmd.startsWith('mobilesheet')) {
-        var s = cmd.substr(11+1);
-        sheet(message,dbpool,s,1);
-    }
-    if(cmd.startsWith('I am')||cmd.startsWith('i am')) {
-        var s = cmd.substr(4+1);
-        iam(message,s,dbpool);
-    }
-    if(cmd.startsWith('add')) {
-        var s = cmd.substr(3+1);
-        registercharacter(message,s,dbpool);
-    }
-    if(cmd.startsWith('diceroll')) {
-        diceroll(message);
-    }
-    if(cmd.startsWith('call10')) {
-        callten(message,dbpool);
-    }
+	if(cmd.startsWith('myid')) {
+		myid(message);
+	}
+	if(cmd.startsWith('mysheet')) {
+		sheet(message,dbpool,s="");
+	}
+	if(cmd.startsWith('sheet')) {
+		var s = cmd.substr(5+1);
+		sheet(message,dbpool,s);
+	}
+	if(cmd.startsWith('mymobilesheet')) {
+		sheet(message,dbpool,s="",1);
+	}
+	if(cmd.startsWith('mobilesheet')) {
+		var s = cmd.substr(11+1);
+		sheet(message,dbpool,s,1);
+	}
+	if(cmd.startsWith('I am')||cmd.startsWith('i am')) {
+		var s = cmd.substr(4+1);
+		iam(message,s,dbpool);
+	}
+	if(cmd.startsWith('add')) {
+		var s = cmd.substr(3+1);
+		registercharacter(message,s,dbpool);
+	}
+	if(cmd.startsWith('diceroll')) {
+		diceroll(message);
+	}
+	if(cmd.startsWith('call10')) {
+		callten(message,dbpool);
+	}
 
-    if(cmd.startsWith('reroll')) {
-        reroll(message,dbpool);
-    }
+	if(cmd.startsWith('reroll')) {
+		reroll(message,dbpool);
+	}
 
         if(cmd.startsWith('injury')) {
-        var s = cmd.substr(6+1);
+		var s = cmd.substr(6+1);
                 injury(message,dbpool,s);
         }
 
-    if(cmd.startsWith('luck')) {
-        var s = cmd.substr(4+1);
+	if(cmd.startsWith('luck')) {
+		var s = cmd.substr(4+1);
                 luck(message,dbpool,s);
         }
 
-    if(cmd.startsWith('xp')) {
-        var s = cmd.substr(2+1);
+	if(cmd.startsWith('xp')) {
+		var s = cmd.substr(2+1);
                 xp(message,dbpool,s);
         }
 
         if(cmd.startsWith('setvalue')) {
                 var s = cmd.substr(8+1);
-                //console.log("AB message:"); //is still a amessage at this point
-                //console.log(message);
                 setvalue(message,dbpool,s);
         }
 
@@ -1218,7 +1099,7 @@ console.log(message.content);
                 settally(message,dbpool,s);
         }
 
-    if(cmd.startsWith('bonus')) {
+	if(cmd.startsWith('bonus')) {
                 var s = cmd.substr(5+1);
                 bonus(message,dbpool,s);
         }
