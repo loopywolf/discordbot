@@ -870,7 +870,7 @@ function roll(message,s,crit=0,crittrue=0,previous="",version="v1") {
 	//quick function that takes roll 8 vs 5
 	
 	s = s.replace(/\s+/g, '');
-	var parameters = s.split(/(vs|v)/);
+	var parameters = s.split(/(vs|v)/i);
         var pl = parameters.length;
         console.log(parameters);
 
@@ -929,7 +929,7 @@ function roll(message,s,crit=0,crittrue=0,previous="",version="v1") {
 
 function sendRollResult(message,s,dice,crit=0,crittrue=0,previous=""){
 	// var parameters = s.split(" ");
-	var parameters = s.split(/(vs|v)/);
+	var parameters = s.split(/(vs|v)/i);
 
 	var diffparse = parameters[2].split("+");
         var difficulty = 0;
@@ -1060,7 +1060,7 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
     console.log("rollWithStat cmd="+s);
     //quick function that takes roll 8 vs 5
     // var parameters = s.split(" ");
-    var parameters = s.split(/(vs|v)/);
+    var parameters = s.split(/(vs|v)/i);
 
     statName = parameters[0]; //at this point it might be STR or STR+3
     bonus = 0;
@@ -1180,7 +1180,7 @@ function stripPlusOff(s) {
 
 function sendRollResultV2(message,s,dice,crit=0,crittrue=0,previous=""){
         // var parameters = s.split(" ");
-        var parameters = s.split(/(vs|v)/);	
+        var parameters = s.split(/(vs|v)/i);	
 	var diffparse = parameters[2].split("+");
 	var difficulty = 0;
 	diffparse.forEach(function (item, index) {
