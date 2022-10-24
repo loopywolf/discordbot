@@ -1198,19 +1198,28 @@ function sendRollResultV2(message,s,dice,crit=0,crittrue=0,previous=""){
 		return;
 	}
 	*/
+	/*
 	if(difficulty<=1 || dice<=1) {
 		message.channel.send("rollv2: dice and difficulty must be larger than 1 for this to work.");
 		return;
 	}
+	*/
 	console.log("dice="+dice+" difficulty="+difficulty);
 	
-	var dDice = 1 + Math.round( Math.random() * (dice-1) );
-	var dTarget = 1 + Math.round( Math.random() * (difficulty-1) );
+	// var dDice = 1 + Math.round( Math.random() * (dice-1) );
+	// var dTarget = 1 + Math.round( Math.random() * (difficulty-1) );
+
+	var dDice = Math.floor(Math.random() * (dice+1));
+	var dTarget =  Math.floor(Math.random() * (difficulty+1));
+
+
 	var maxMessage = "";
+	/*
 	if(dTarget==difficulty) {
 		maxMessage = difficulty+" so ";
 		dTarget = 0;
 	}
+	*/
 	var total = dDice + dTarget;
 	var margin = dDice + dTarget - difficulty;
 	var successOrFail = "**success** (margin is +"+margin+")";
