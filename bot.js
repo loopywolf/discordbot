@@ -862,12 +862,24 @@ function reroll(message,dbpool) {
    })
 }
 
-function roll(message,s,crit=0,crittrue=0,previous="",version="") {
+function roll(message,s,crit=0,crittrue=0,previous="",version="v1") {
 	var user = message.author.username;
 	var uid = message.author.id;
 	var finalresult = 0;
 	console.log("roll cmd="+s);
 	//quick function that takes roll 8 vs 5
+	
+	s = s.replace(/\s+/g, '');
+	var parameters = s.split(/(vs|v)/);
+        var pl = parameters.length;
+        console.log(parameters);
+
+	if(parameters.length!=3) {
+		message.channel.send("roll: I'm expecting 2 parameters like <roll 8 vs 5>");
+		return;
+	}
+	
+	/*
 	var parameters = s.split(" ");
 	if(parameters.length!=3) {
 		message.channel.send("roll: I'm expecting 2 parameters like <roll 8 vs 5>");
@@ -877,6 +889,7 @@ function roll(message,s,crit=0,crittrue=0,previous="",version="") {
 		message.channel.send("roll: I'm expecting a 'vs' as 2nd parameter, like <roll 8 vs 5>, but I got "+parameters[1]);
 		return;
 	}
+	*/
 	
 	/* UPDATE 2022 FEB - before sending down the chain, figure out if there is a "+x" on the left and a "+y" on the right and if so,
 	                     calculate it, and send it down the chain to the sub-functions 
@@ -900,7 +913,7 @@ function roll(message,s,crit=0,crittrue=0,previous="",version="") {
 
 	var dice = parseInt(parameters[0]);
 	if( isNaN(dice)) {
-        rollWithStat( message,s,crit=0,crittrue=0,previous=""); //this has to be made into an async call of its own :(
+        rollWithStat( message,s,crit=0,crittrue=0,previous="",version); //this has to be made into an async call of its own :(
         return;
 	}
 	var difficulty = parseInt(parameters[2]);
@@ -915,13 +928,25 @@ function roll(message,s,crit=0,crittrue=0,previous="",version="") {
 }
 
 function sendRollResult(message,s,dice,crit=0,crittrue=0,previous=""){
-	var parameters = s.split(" ");
+	// var parameters = s.split(" ");
+	var parameters = s.split(/(vs|v)/);
 
+	var diffparse = parameters[2].split("+");
+        var difficulty = 0;
+        diffparse.forEach(function (item, index) {
+                if(isNaN(item)) {
+                        message.channel.send("roll: "+parameters[2]+" isn't a number.");
+                        return;
+                }
+                difficulty = difficulty+parseInt(item);
+        });
+	/*
 	var difficulty = parseInt(parameters[2]);
 	if( isNaN(difficulty)) {
 		message.channel.send("roll: "+parameters[2]+" isn't a number.");
 		return;
 	}
+	*/
 
 	console.log("dice="+dice+" difficulty="+difficulty);
 	var percentile = Math.random();
@@ -1028,13 +1053,14 @@ function myid(message) {
 	message.channel.send("myid: "+user+" checked self-id "+id);
 }
 
-function rollWithStat(message,s,crit=0,crittrue=0,previous="",statName) {
+function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
     var user = message.author.username;
     var uid = message.author.id;
     var finalresult = 0;
     console.log("rollWithStat cmd="+s);
     //quick function that takes roll 8 vs 5
-    var parameters = s.split(" ");
+    // var parameters = s.split(" ");
+    var parameters = s.split(/(vs|v)/);
 
     statName = parameters[0]; //at this point it might be STR or STR+3
     bonus = 0;
@@ -1064,8 +1090,10 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",statName) {
 	    	message.channel.send(user+"'s "+statName+" is "+dice);
 	    dice = dice + bonus;
             console.log("rollWithStat1: "+statName+" = "+dice);   
-            difficulty =              
-           	sendRollResult(message,s,dice);
+            if(version=="v2")
+                difficulty = sendRollResultV2(message,s,dice);
+            else
+                difficulty = sendRollResult(message,s,dice);
             return;
         } else {
         	console.log("rollWithStat: nothing found in dB");
@@ -1094,7 +1122,10 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",statName) {
 			    	message.channel.send(iam+"'s "+statName+" is "+dice+"(using I am..)");
 			    dice = dice + bonus;
 		            //message.channel.send(iam+"'s "+statName+" is "+dice+"(using I am..)");
-		            sendRollResult(message,s,dice);            
+                            if(version=="v2")
+				sendRollResultV2(message,s,dice);
+                            else
+		                sendRollResult(message,s,dice);            
 		            return;
 		        } else
 		        	console.log("rollWithStat: nothing found for discord.");
@@ -1148,13 +1179,25 @@ function stripPlusOff(s) {
 }
 
 function sendRollResultV2(message,s,dice,crit=0,crittrue=0,previous=""){
-	var parameters = s.split(" ");
+        // var parameters = s.split(" ");
+        var parameters = s.split(/(vs|v)/);	
+	var diffparse = parameters[2].split("+");
+	var difficulty = 0;
+	diffparse.forEach(function (item, index) {
+		if(isNaN(item)) {
+			message.channel.send("rollv2: "+parameters[2]+" isn't a number.");
+			return;
+		}
+		difficulty = difficulty+parseInt(item);
+	});
 
-	var difficulty = parseInt(parameters[2]);
+	//var difficulty = parseInt(parameters[2]);
+	/*	
 	if( isNaN(difficulty)) {
 		message.channel.send("rollv2: "+parameters[2]+" isn't a number.");
 		return;
 	}
+	*/
 	if(difficulty<=1 || dice<=1) {
 		message.channel.send("rollv2: dice and difficulty must be larger than 1 for this to work.");
 		return;
