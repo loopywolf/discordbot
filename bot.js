@@ -1062,80 +1062,69 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
     // var parameters = s.split(" ");
     var parameters = s.split(/(vs|v)/i);
 
-    statName = parameters[0]; //at this point it might be STR or STR+3
-    bonus = 0;
+    var statparse = parameters[0].split("+");
+    var dice = 0;
+    var tempdice = 0;
+    var bonus = 0;
 
-    statAndBonus = statName.split("+");
-    if( statAndBonus[1]>=0 ) {
-    	statName = statAndBonus[0];
-    	bonus = parseInt(statAndBonus[1]);
-    	console.log("Stat&Bonus stat="+statName+" bonus="+bonus);
-    }
-
-    console.log("rollWithStat: trying username "+user+" as chr for "+statName);
-    sql = 
+    statparse.forEach(function (item, index) {
+      if(isNaN(item)) {
+        // console.log("rollWithStat: trying username "+user+" as chr for "+statName);
+	console.log("rollWithStat: trying username "+user+" as chr for "+item);
+        sql =
 'SELECT ds.statValue '+
 'FROM dice_characters dc INNER JOIN dice_stats ds ON (ds.char_id = dc.id) '+
 'WHERE dc.name = "'+user+'" '+
-'AND ds.statName = "'+statName+'"';
-    console.log('query ='+sql);
-    dbpool.query(sql, function (err, result,fields) {
-        if (err) throw err;
-        console.log('queried.');
-        if (Object.keys(result).length) {
-            dice = result[0].statValue;
-            if(bonus>0)
-	    	message.channel.send(user+"'s "+statName+" is "+dice+"+"+bonus);
-	    else
-	    	message.channel.send(user+"'s "+statName+" is "+dice);
-	    dice = dice + bonus;
-            console.log("rollWithStat1: "+statName+" = "+dice);   
-            if(version=="v2")
-                difficulty = sendRollResultV2(message,s,dice);
-            else
-                difficulty = sendRollResult(message,s,dice);
-            return;
-        } else {
+'AND ds.statName = "'+item+'"';
+
+        console.log('query ='+sql);
+        dbpool.query(sql, function (err, result,fields) {
+            if (err) throw err;
+            console.log('queried.');
+            if (Object.keys(result).length) {
+                dice = dice + result[0].statValue;
+		message.channel.send(user+"'s "+statName+" is "+result[0].statValue);
+            } else {
         	console.log("rollWithStat: nothing found in dB");
 		    //simple stupid brute-force way to fix this
-		    console.log("rollWithStat: trying discord user "+uid+" as chr for "+statName);
+		    console.log("rollWithStat: trying discord user "+uid+" as chr for "+item);
 		    sql = 
-		/*'SELECT ds.statValue '+
-		'FROM discord_users du INNER JOIN dice_stats ds ON (ds.char_id = du.char_id) '+
-		'WHERE du.nickname = "'+user+'" '+
-		'AND ds.statName = "'+statName+'"';*/
 'select statName,statValue,nickname'+
 ' from discord_users du INNER JOIN dice_stats ds ON (du.char_id = ds.char_id)'+
 ' WHERE du.userid = '+uid+ //217438047803932672
 ' AND category = '+message.channel.parent+
-' AND statName = "'+statName+'"';
+' AND statName = "'+item+'"';
+
 		    dbpool.query(sql, function (err, result,fields) {
 		        if (err) throw err;
 		        if (Object.keys(result).length) {
-		            dice = result[0].statValue;
+			    dice = dice + result[0].statValue;
+			    tempdice = tempdice + result[0].statValue;
+		            //dice = result[0].statValue;
 		            iam = result[0].nickname;
-		            console.log("rollWithStat2: "+statName+" = "+dice);  
+			    //console.log("rollWithStat2: "+statName+" = "+dice);
+		            console.log("rollWithStat2: "+item+" = "+result[0].statValue);  
 	                    console.log("category is "+message.channel.parent);
-	                    if(bonus>0)
-			    	message.channel.send(iam+"'s "+statName+" is "+dice+"+"+bonus+"(using I am..)");
-			    else
-			    	message.channel.send(iam+"'s "+statName+" is "+dice+"(using I am..)");
-			    dice = dice + bonus;
-		            //message.channel.send(iam+"'s "+statName+" is "+dice+"(using I am..)");
-                            if(version=="v2")
-				sendRollResultV2(message,s,dice);
-                            else
-		                sendRollResult(message,s,dice);            
-		            return;
-		        } else
-		        	console.log("rollWithStat: nothing found for discord.");
-                    message.channel.send("Nothing found for "+statName);
-		        //if object keys
-		    })
-        }
-        //if object keys
+		        } else {
+		          console.log("rollWithStat: nothing found for discord.");
+                          message.channel.send("Nothing found for "+item);
+			  return;
+		        }
+                     })
+                 }
+            })
+        } else {
+        dice = dice + item;
+	bonus = bonus + item
+      }
     })
-
+    message.channel.send(user+"'s "+parameters[0]+" is "+tempdice+"+"+bonus); 
+    if(version=="v2") {
+      sendRollResultV2(message,s,dice);
+    } else {
+      sendRollResult(message,s,dice);
+    }
+    return;
 }//F
 
 function sendStatResult(dice,difficulty,message,reportPercentile,s,result,crit,dice,crit,previous) {
