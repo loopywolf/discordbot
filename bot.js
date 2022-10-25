@@ -1078,7 +1078,6 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
     console.log("rollWithStat cmd="+s);
     //quick function that takes roll 8 vs 5
     var parameters = s.split(/(vs|v)/i);
-
     var statparse = parameters[0].split("+");
     var dice = 0;
     var tempdice = 0;
@@ -1086,8 +1085,24 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
     var tempvalue = 0;
 
     console.log(statparse);
+
+    // dirty 1st pass
     statparse.forEach(async function (item, index) {
-      console.log("######## STEP 2 - statparse");
+	    console.log("######## STEP 2a - statparse "+index);
+	    if(!isNaN(item)) {
+		    console.log(item+" is Integer");
+		    bonus = bonus + parseInt(item);
+		    console.log('bonus total => '+bonus);
+	    }
+    })
+
+    statparse = statparse.filter(x => isNaN(x));
+
+    console.log(statparse);
+
+    // dirty 2nd pass
+    statparse.forEach(async function (item, index) {
+      console.log("######## STEP 2b - statparse "+index);
       if(isNaN(item)) {
 	console.log("######## STEP 3 - isNaN "+item);
 	console.log("rollWithStat: trying username "+user+" as chr for "+item);
@@ -1099,13 +1114,22 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
         console.log('query ='+sql);
 	let result = await execute_rows(sql);
         console.log("############ STEP 4a - SQL");
-	console.log(result);
-        if (result && result.lenght > 0) {
+	//console.log(result);
+        if (result && result.length > 0) {
 		dice = dice + parseInt(result[0].statValue);
-		console.log("dice="+dice+" value="+result[0].statValue);
+		console.log("dice before bonus="+dice);
 		tempdice = tempdice + parseInt(result[0].statValue);
 		console.log("Found First DB Pass");
 		message.channel.send(user+"'s "+item+" is "+result[0].statValue);
+		if (index + 1 == statparse.length) {
+			if(version=="v2") {
+				dice = dice + bonus
+				sendRollResultV2(message,s,dice);
+			} else {
+				dice = dice + bonus
+				sendRollResult(message,s,dice);
+			}
+		}
 	} else {
 		console.log("rollWithStat: nothing found in dB"); //simple stupid brute-force way to fix this
 		sql =
@@ -1116,38 +1140,35 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
 			' AND statName = "'+item+'"';
 		console.log("############ STEP 4b - SQL");
 		let result = await execute_rows(sql);
-		console.log(result)
+		//console.log(result)
 
-		if (result && result.lenght > 0) {
+		if (result && result.length > 0) {
 			console.log("Found in 2nd DB Pass");
 			dice = dice + parseInt(result[0].statValue);
-			console.log("dice=>"+dice+" value=>"+result[0].statValue);
+			console.log("dice before bonus=>"+dice);
 			tempdice = tempdice + parseInt(result[0].statValue);
 			iam = result[0].nickname;
 			console.log("rollWithStat2: "+item+" = "+result[0].statValue);
 			console.log("category is "+message.channel.parent);
 			message.channel.send(iam+"'s "+item+" = "+result[0].statValue);
+			if (index + 1 == statparse.length) {
+				if(version=="v2") {
+					dice = dice + bonus
+					sendRollResultV2(message,s,dice);
+				} else {
+					dice = dice + bonus
+					sendRollResult(message,s,dice);
+				}
+			}
 		} else {
-			console.log("rollWithStat: nothing found for discord.");
+			console.log("rollwithStat: nothing found for discord.");
 			message.channel.send("Nothing found for "+item);
 			return;
 		}
 	  }
 
-      } else {
-	    console.log("######## STEP 3 - is not NaN")
-            dice = dice + parseInt(item);
-	    bonus = bonus + parseInt(item);
       }
     })
-    console.log("################ STEP 5 - SEND");
-
-    if(version=="v2") {
-      sendRollResultV2(message,s,dice);
-    } else {
-      sendRollResult(message,s,dice);
-    }
-
     return;
 }//F
 
