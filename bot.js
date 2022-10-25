@@ -19,11 +19,8 @@ function execute_rows(query){
          if (err) {
              // Returning the error
              reject(err);
-             con.end();
          }
-
          resolve(result);
-         con.end();
      });
  });
 }
@@ -982,6 +979,7 @@ function sendRollResult(message,s,dice,crit=0,crittrue=0,previous=""){
 
     var cm = combatModifier(result);
     s = s.replace(/\+/g, ' + ');
+    s = s.replace(/(vs|v)(?=\d)/ig, ' vs ');
     message.channel.send("roll: "+message.author.username+" rolled "+s+" and got "+reportPercentile+"/100 = "+result+cm);
 }//F sendRollResult
 
@@ -1070,14 +1068,13 @@ function myid(message) {
 	message.channel.send("myid: "+user+" checked self-id "+id);
 }
 
-async function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
+function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
     console.log("#### STEP 1 - FUNCTION");
     var user = message.author.username;
     var uid = message.author.id;
     var finalresult = 0;
     console.log("rollWithStat cmd="+s);
     //quick function that takes roll 8 vs 5
-    // var parameters = s.split(" ");
     var parameters = s.split(/(vs|v)/i);
 
     var statparse = parameters[0].split("+");
@@ -1090,61 +1087,51 @@ async function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1"
     statparse.forEach(function (item, index) {
       console.log("######## STEP 2 - statparse");
       if(isNaN(item)) {
-	console.log("######## STEP 3 - isNaaNbread "+item);
+	console.log("######## STEP 3 - isNaN "+item);
 	console.log("rollWithStat: trying username "+user+" as chr for "+item);
         sql =
             'SELECT ds.statValue '+
             'FROM dice_characters dc INNER JOIN dice_stats ds ON (ds.char_id = dc.id) '+
             'WHERE dc.name = "'+user+'" '+
             'AND ds.statName = "'+item+'"';
-
         console.log('query ='+sql);
-        dbpool.query(sql, function (err, result,fields) {
-            console.log("############ STEP 4a - SQL");
-            if (err) throw err;
-            console.log('queried.');
-            if (Object.keys(result).length) {
-		console.log(result);
-                dice = dice + parseInt(result[0].statValue);
+	let result = Promise.resolve(execute_rows(sql));
+        console.log("############ STEP 4a - SQL");
+	console.log(result);
+        if (result && result.lenght > 0) {
+		dice = dice + parseInt(result[0].statValue);
 		console.log("dice="+dice+" value="+result[0].statValue);
 		tempdice = tempdice + parseInt(result[0].statValue);
 		console.log("Found First DB Pass");
-		message.channel.send(user+"'s "+statName+" is "+result[0].statValue);
-            } else {
-        	console.log("rollWithStat: nothing found in dB");
-		    //simple stupid brute-force way to fix this
-		    console.log("rollWithStat: trying discord user "+uid+" as chr for "+item);
-		    sql = 
-                        'select statName,statValue,nickname'+
-                        ' from discord_users du INNER JOIN dice_stats ds ON (du.char_id = ds.char_id)'+
-                        ' WHERE du.userid = '+uid+ //217438047803932672
-                        ' AND category = '+message.channel.parent+
-                        ' AND statName = "'+item+'"';
+		message.channel.send(user+"'s "+item+" is "+result[0].statValue);
+	} else {
+		console.log("rollWithStat: nothing found in dB"); //simple stupid brute-force way to fix this
+		sql =
+			'select statName,statValue,nickname'+
+			' from discord_users du INNER JOIN dice_stats ds ON (du.char_id = ds.char_id)'+
+			' WHERE du.userid = '+uid+ //217438047803932672
+			' AND category = '+message.channel.parent+
+			' AND statName = "'+item+'"';
+		console.log("############ STEP 4b - SQL");
+		let result = execute_rows(sql);
+		if (result && result.lenght > 0) {
+			console.log("Found in 2nd DB Pass");
+			dice = dice + parseInt(result[0].statValue);
+			console.log("dice=>"+dice+" value=>"+result[0].statValue);
+			tempdice = tempdice + parseInt(result[0].statValue);
+			iam = result[0].nickname;
+			console.log("rollWithStat2: "+item+" = "+result[0].statValue);
+			console.log("category is "+message.channel.parent);
+			message.channel.send(iam+"'s "+item+" = "+result[0].statValue);
+		} else {
+			console.log("rollWithStat: nothing found for discord.");
+			message.channel.send("Nothing found for "+item);
+			return;
+		}
+	}
 
-		    dbpool.query(sql, async function (err, result,fields) {
-			console.log("############ STEP 4b - SQL");
-		        if (err) throw err;
-		        if (Object.keys(result).length) {
-			    console.log("Found in 2nd DB Pass");
-			    dice = dice + parseInt(result[0].statValue);
-                            // console.log(result);
-			    console.log("dice=>"+dice+" value=>"+result[0].statValue);
-			    tempdice = tempdice + parseInt(result[0].statValue);
-		            iam = result[0].nickname;
-		            console.log("rollWithStat2: "+item+" = "+result[0].statValue);  
-	                    console.log("category is "+message.channel.parent);
-			    message.channel.send(iam+"'s "+item+" = "+result[0].statValue);
-		        } else {
-		              console.log("rollWithStat: nothing found for discord.");
-                              message.channel.send("Nothing found for "+item);
-			      return;
-		        }
-                     });
-
-                 }
-            });
-        } else {
-	    console.log("######## STEP 3 - is not NaaNbread")
+      } else {
+	    console.log("######## STEP 3 - is not NaN")
             dice = dice + parseInt(item);
 	    bonus = bonus + parseInt(item);
       }
