@@ -1113,6 +1113,7 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
             'AND ds.statName = "'+item+'"';
         console.log('query ='+sql);
 	const result = await execute_rows(sql);
+	(async () => console.log(await result))();
 	
         console.log("############ STEP 4a - SQL");
 	//console.log(result);
