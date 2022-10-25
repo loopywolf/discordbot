@@ -13,10 +13,12 @@ const dbpool = mysql.createPool(dbconfig);
 //https://discordapp.com/oauth2/authorize?&client_id=450390626534424586&scope=bot&permissions=0 //3072?
 
 function execute_rows(query){
+ console.log("execute_rows sql => "+query);
  con = dbpool;
  return new Promise((resolve, reject) => {
      con.query(query, function(err, result, fields) {
          if (err) {
+	     console.log("err: "+err);
              // Returning the error
              reject(err);
          }
@@ -1084,7 +1086,7 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
     var tempvalue = 0;
 
     console.log(statparse);
-    statparse.forEach(function (item, index) {
+    statparse.forEach(async function (item, index) {
       console.log("######## STEP 2 - statparse");
       if(isNaN(item)) {
 	console.log("######## STEP 3 - isNaN "+item);
@@ -1095,7 +1097,7 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
             'WHERE dc.name = "'+user+'" '+
             'AND ds.statName = "'+item+'"';
         console.log('query ='+sql);
-	let result = Promise.resolve(execute_rows(sql));
+	let result = await execute_rows(sql);
         console.log("############ STEP 4a - SQL");
 	console.log(result);
         if (result && result.lenght > 0) {
@@ -1113,7 +1115,9 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
 			' AND category = '+message.channel.parent+
 			' AND statName = "'+item+'"';
 		console.log("############ STEP 4b - SQL");
-		let result = execute_rows(sql);
+		let result = await execute_rows(sql);
+		console.log(result)
+
 		if (result && result.lenght > 0) {
 			console.log("Found in 2nd DB Pass");
 			dice = dice + parseInt(result[0].statValue);
@@ -1128,7 +1132,7 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
 			message.channel.send("Nothing found for "+item);
 			return;
 		}
-	}
+	  }
 
       } else {
 	    console.log("######## STEP 3 - is not NaN")
@@ -1136,7 +1140,6 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
 	    bonus = bonus + parseInt(item);
       }
     })
-    // message.channel.send(user+"'s "+parameters[0]+" is "+tempdice.toString()+"+"+bonus.toString());
     console.log("################ STEP 5 - SEND");
 
     if(version=="v2") {
