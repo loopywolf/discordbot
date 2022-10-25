@@ -1128,19 +1128,16 @@ async function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1"
 			    console.log("Found in 2nd DB Pass");
 			    dice = dice + parseInt(result[0].statValue);
                             // console.log(result);
-			    // var resultArray = Object.values(JSON.parse(JSON.stringify(result)));
 			    console.log("dice=>"+dice+" value=>"+result[0].statValue);
 			    tempdice = tempdice + parseInt(result[0].statValue);
-		            //dice = result[0].statValue;
 		            iam = result[0].nickname;
-			    //console.log("rollWithStat2: "+statName+" = "+dice);
 		            console.log("rollWithStat2: "+item+" = "+result[0].statValue);  
 	                    console.log("category is "+message.channel.parent);
 			    message.channel.send(iam+"'s "+item+" = "+result[0].statValue);
 		        } else {
-		          console.log("rollWithStat: nothing found for discord.");
-                          message.channel.send("Nothing found for "+item);
-			  return;
+		              console.log("rollWithStat: nothing found for discord.");
+                              message.channel.send("Nothing found for "+item);
+			      return;
 		        }
                      });
 
@@ -1329,7 +1326,7 @@ client.on('message', message => {
     //if (message.author === client.user) return;
     //if (!message.content.startsWith(".") || message.author.bot) return;
 
-if(message.author.id != 463512744310734848) {
+if(message.author.id != settings.bot_id) {
   console.log(message.author.id + ":" + message.author.username);
   console.log(message.content);
 }
