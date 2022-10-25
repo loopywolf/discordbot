@@ -1112,7 +1112,8 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
             'WHERE dc.name = "'+user+'" '+
             'AND ds.statName = "'+item+'"';
         console.log('query ='+sql);
-	let result = await execute_rows(sql);
+	const result = await execute_rows(sql);
+	
         console.log("############ STEP 4a - SQL");
 	//console.log(result);
         if (result && result.length > 0) {
@@ -1139,7 +1140,8 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
 			' AND category = '+message.channel.parent+
 			' AND statName = "'+item+'"';
 		console.log("############ STEP 4b - SQL");
-		let result = await execute_rows(sql);
+		const result = await execute_rows(sql);
+		(async () => console.log(await result))();
 		//console.log(result)
 
 		if (result && result.length > 0) {
