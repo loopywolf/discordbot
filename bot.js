@@ -12,6 +12,22 @@ const dbpool = mysql.createPool(dbconfig);
 
 //https://discordapp.com/oauth2/authorize?&client_id=450390626534424586&scope=bot&permissions=0 //3072?
 
+function execute_rows(query){
+ con = dbpool;
+ return new Promise((resolve, reject) => {
+     con.query(query, function(err, result, fields) {
+         if (err) {
+             // Returning the error
+             reject(err);
+             con.end();
+         }
+
+         resolve(result);
+         con.end();
+     });
+ });
+}
+
 function getNickname(myUser,myGuildID) {
 	var nickname = client.guilds.find('id',myGuildID).members.find('id',myUser.id).nickname;
     if (nickname == null) { nickname = myUser.username; }
@@ -913,7 +929,7 @@ function roll(message,s,crit=0,crittrue=0,previous="",version="v1") {
 
 	var dice = parseInt(parameters[0]);
 	if( isNaN(dice)) {
-        rollWithStat( message,s,crit=0,crittrue=0,previous="",version); //this has to be made into an async call of its own :(
+          rollWithStat( message,s,crit=0,crittrue=0,previous="",version); //this has to be made into an async call of its own :(
         return;
 	}
 	var difficulty = parseInt(parameters[2]);
@@ -965,6 +981,7 @@ function sendRollResult(message,s,dice,crit=0,crittrue=0,previous=""){
     }//if
 
     var cm = combatModifier(result);
+    s = s.replace(/\+/g, ' + ');
     message.channel.send("roll: "+message.author.username+" rolled "+s+" and got "+reportPercentile+"/100 = "+result+cm);
 }//F sendRollResult
 
@@ -1053,7 +1070,8 @@ function myid(message) {
 	message.channel.send("myid: "+user+" checked self-id "+id);
 }
 
-function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
+async function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
+    console.log("#### STEP 1 - FUNCTION");
     var user = message.author.username;
     var uid = message.author.id;
     var finalresult = 0;
@@ -1066,10 +1084,13 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
     var dice = 0;
     var tempdice = 0;
     var bonus = 0;
+    var tempvalue = 0;
 
+    console.log(statparse);
     statparse.forEach(function (item, index) {
+      console.log("######## STEP 2 - statparse");
       if(isNaN(item)) {
-        // console.log("rollWithStat: trying username "+user+" as chr for "+statName);
+	console.log("######## STEP 3 - isNaaNbread "+item);
 	console.log("rollWithStat: trying username "+user+" as chr for "+item);
         sql =
             'SELECT ds.statValue '+
@@ -1079,38 +1100,43 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
 
         console.log('query ='+sql);
         dbpool.query(sql, function (err, result,fields) {
+            console.log("############ STEP 4a - SQL");
             if (err) throw err;
             console.log('queried.');
             if (Object.keys(result).length) {
+		console.log(result);
                 dice = dice + parseInt(result[0].statValue);
-		console.log("dice="+dice.toString()+" value="+result[0].statValue);
+		console.log("dice="+dice+" value="+result[0].statValue);
 		tempdice = tempdice + parseInt(result[0].statValue);
-		console.log("Found First DB Pass")
+		console.log("Found First DB Pass");
 		message.channel.send(user+"'s "+statName+" is "+result[0].statValue);
             } else {
         	console.log("rollWithStat: nothing found in dB");
 		    //simple stupid brute-force way to fix this
 		    console.log("rollWithStat: trying discord user "+uid+" as chr for "+item);
 		    sql = 
-            'select statName,statValue,nickname'+
-            ' from discord_users du INNER JOIN dice_stats ds ON (du.char_id = ds.char_id)'+
-            ' WHERE du.userid = '+uid+ //217438047803932672
-            ' AND category = '+message.channel.parent+
-            ' AND statName = "'+item+'"';
+                        'select statName,statValue,nickname'+
+                        ' from discord_users du INNER JOIN dice_stats ds ON (du.char_id = ds.char_id)'+
+                        ' WHERE du.userid = '+uid+ //217438047803932672
+                        ' AND category = '+message.channel.parent+
+                        ' AND statName = "'+item+'"';
 
-		    dbpool.query(sql, function (err, result,fields) {
+		    dbpool.query(sql, async function (err, result,fields) {
+			console.log("############ STEP 4b - SQL");
 		        if (err) throw err;
 		        if (Object.keys(result).length) {
-			    dice = dice + parseInt(result[0].statValue);
 			    console.log("Found in 2nd DB Pass");
-			    console.log("dice="+dice.toString()+" value="+result[0].statValue);
+			    dice = dice + parseInt(result[0].statValue);
+                            // console.log(result);
+			    // var resultArray = Object.values(JSON.parse(JSON.stringify(result)));
+			    console.log("dice=>"+dice+" value=>"+result[0].statValue);
 			    tempdice = tempdice + parseInt(result[0].statValue);
 		            //dice = result[0].statValue;
 		            iam = result[0].nickname;
 			    //console.log("rollWithStat2: "+statName+" = "+dice);
 		            console.log("rollWithStat2: "+item+" = "+result[0].statValue);  
 	                    console.log("category is "+message.channel.parent);
-			    message.channel.send(user+"'s "+item+" = "+result[0].statValue);
+			    message.channel.send(iam+"'s "+item+" = "+result[0].statValue);
 		        } else {
 		          console.log("rollWithStat: nothing found for discord.");
                           message.channel.send("Nothing found for "+item);
@@ -1121,16 +1147,20 @@ function rollWithStat(message,s,crit=0,crittrue=0,previous="",version="v1") {
                  }
             });
         } else {
+	    console.log("######## STEP 3 - is not NaaNbread")
             dice = dice + parseInt(item);
 	    bonus = bonus + parseInt(item);
       }
     })
-    // message.channel.send(user+"'s "+parameters[0]+" is "+tempdice.toString()+"+"+bonus.toString()); 
+    // message.channel.send(user+"'s "+parameters[0]+" is "+tempdice.toString()+"+"+bonus.toString());
+    console.log("################ STEP 5 - SEND");
+
     if(version=="v2") {
       sendRollResultV2(message,s,dice);
     } else {
       sendRollResult(message,s,dice);
     }
+
     return;
 }//F
 
@@ -1299,8 +1329,10 @@ client.on('message', message => {
     //if (message.author === client.user) return;
     //if (!message.content.startsWith(".") || message.author.bot) return;
 
-console.log(message.author.id + ":" + message.author.username);
-console.log(message.content);
+if(message.author.id != 463512744310734848) {
+  console.log(message.author.id + ":" + message.author.username);
+  console.log(message.content);
+}
 //console.log(message);   //DEBUG
 
     // parse command
