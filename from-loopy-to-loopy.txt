@@ -6,3 +6,18 @@ I got into a real mess with GIT, so here's what I ask you do next time:
 - git pull
 - git commit
 - git push
+
+From your codemonkey (2022-10-26):
+  git status
+    <if there are differences, you may want to pull>
+  git pull
+    <create a new branch>
+  git checkout -b BRANCH
+    <code like it was dec.31st 1999>
+  git add . --all
+  git commit -a
+  git push --set-upstream origin BRANCH
+    <if code is solid, you can do the following below>
+  git checkout master
+  git merge BRANCH
+  git push
