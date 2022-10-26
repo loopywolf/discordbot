@@ -1,7 +1,18 @@
+//const { Client, GatewayIntentBits } = require('discord.js'); // for version 14+
 const Discord = require('discord.js');
 const util = require('util');
 const sprintf = require('sprintf-js').sprintf;
 const vsprintf = require('sprintf-js').vsprintf;
+/*const intents = require('./intents.json');  // for version 14+
+const client = new Client ({
+    intents: [
+	    GatewayIntentBits.DirectMessages,
+	    GatewayIntentBits.Guilds,
+	    GatewayIntentBits.GuildMessages,
+	    GatewayIntentBits.MessageContent,
+    ]
+});
+*/
 const client = new Discord.Client();
 const settings = require('./settings.json');
 const { spawn } = require( 'child_process' );
@@ -12,7 +23,7 @@ const dbpool = mysql.createPool(dbconfig);
 
 //https://discordapp.com/oauth2/authorize?&client_id=450390626534424586&scope=bot&permissions=0 //3072?
 
-function execute_rows(query){
+async function execute_rows(query){
  console.log("execute_rows sql => "+query);
  con = dbpool;
  return new Promise((resolve, reject) => {
@@ -898,26 +909,6 @@ function roll(message,s,crit=0,crittrue=0,previous="",version="v1") {
 		return;
 	}
 	
-	/* UPDATE 2022 FEB - before sending down the chain, figure out if there is a "+x" on the left and a "+y" on the right and if so,
-	                     calculate it, and send it down the chain to the sub-functions 
-	var bonus = stripPlusOff(parameters[0]);
-	var penalty = stripPlusOff(parameters[2]);
-	if(bonus>=0) {
-		//strip off the "+"
-		parameters[0] = parameters[0].substr( 
-			parameters[0].length - bonus.toString().length - 1,
-			bonus.toString().length + 1);	//e.g. if it's STR+4, strlen is 1, 5 - 1 = 4
-		console.log("without bonus("+bonus+"), parameter is "+parameters[0]);
-		//can make this a function call?
-	}
-	if(penalty>=0) {
-		//strip off the "+"
-		parameters[2] = parameters[2].substr( 
-			parameters[2].length - penalty.toString().length - 1,
-			penalty.toString().length + 1);	//e.g. if it's STR+4, strlen is 1, 5 - 1 = 4
-		console.log("without penalty("+penalty+"), parameter is "+parameters[2]);
-	} */
-
 	var dice = 0
 	var diceparse = parameters[0].split("+");
 	var diceorig = diceparse
@@ -965,28 +956,16 @@ function sendRollResult(message,s,dice,crit=0,crittrue=0,previous=""){
                 }
                 difficulty = difficulty+parseInt(item);
         });
-	/*
-	var difficulty = parseInt(parameters[2]);
-	if( isNaN(difficulty)) {
-		message.channel.send("roll: "+parameters[2]+" isn't a number.");
-		return;
-	}
-	*/
 
 	console.log("dice="+dice+" difficulty="+difficulty);
 	var percentile = Math.random();
 	var reportPercentile = Math.round(100 * percentile);
 	var result = Math.round(percentile * (dice+difficulty)) - difficulty;
 	console.log("percentile="+percentile+" dice="+dice+" difficulty="+difficulty+" result="+result);
-	// message.channel.send("roll: "+user+" rolled "+s+" and got "+reportPercentile+"% = "+result);
-	//palindrome(message, reportPercentile, s, result, crit, dice, crittrue, previous);
+
     if(percentile>0.95) {
-        //new critical rolls - 1 level only for now
-        //percentile = Math.random();
-        //result = Math.round((1.0+percentile) * (dice+difficulty)) - difficulty;
         reportPercentile = reportPercentile + " Critical!! Roll again and add 100";
         console.log("critical "+percentile);
-        //see 20200701 for original code (uh above)
     }//if
 
     var cm = combatModifier(result);
@@ -1238,19 +1217,6 @@ function sendRollResultV2(message,s,dice,crit=0,crittrue=0,previous=""){
 		difficulty = difficulty+parseInt(item);
 	});
 
-	//var difficulty = parseInt(parameters[2]);
-	/*	
-	if( isNaN(difficulty)) {
-		message.channel.send("rollv2: "+parameters[2]+" isn't a number.");
-		return;
-	}
-	*/
-	/*
-	if(difficulty<=1 || dice<=1) {
-		message.channel.send("rollv2: dice and difficulty must be larger than 1 for this to work.");
-		return;
-	}
-	*/
 	console.log("dice="+dice+" difficulty="+difficulty);
 	
 	// var dDice = 1 + Math.round( Math.random() * (dice-1) );
@@ -1261,12 +1227,6 @@ function sendRollResultV2(message,s,dice,crit=0,crittrue=0,previous=""){
 
 
 	var maxMessage = "";
-	/*
-	if(dTarget==difficulty) {
-		maxMessage = difficulty+" so ";
-		dTarget = 0;
-	}
-	*/
 	var total = dDice + dTarget;
 	var margin = dDice + dTarget - difficulty;
 	var successOrFail = "**success** (margin is +"+margin+")";
@@ -1275,9 +1235,6 @@ function sendRollResultV2(message,s,dice,crit=0,crittrue=0,previous=""){
 	if(margin==0)
 		successOrFail = "?";
 	console.log("dDice="+dDice+" dTarget="+dTarget+" margin="+margin+" successOrFail="+successOrFail);
-	// message.channel.send("roll: "+user+" rolled "+s+" and got "+reportPercentile+"% = "+result);
-	//palindrome(message, reportPercentile, s, result, crit, dice, crittrue, previous);
-	//critical
 
     var cm = combatModifier(margin);
     message.channel.send("rollv2: "+message.author.username+" rolled (d"+dice+",d"+difficulty+") and got ["+dDice+"]["+maxMessage+dTarget+"] (total "+total+
@@ -1346,14 +1303,12 @@ client.on('ready',() => {
 });
 
 client.on('message', message => {
-    console.log( message.content );
     //if (message.author === client.user) return;
     //if (!message.content.startsWith(".") || message.author.bot) return;
-
-if(message.author.id != settings.bot_id) {
-  console.log(message.author.id + ":" + message.author.username);
-  console.log(message.content);
-}
+  if(message.author.id != settings.bot_id) {
+  	console.log(message.author.id + ":" + message.author.username);
+  	console.log(message.content);
+  }
 //console.log(message);   //DEBUG
 
     // parse command
