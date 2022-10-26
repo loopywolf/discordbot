@@ -27,6 +27,10 @@ function execute_rows(query){
  });
 }
 
+function add(accumulator, a) {
+  return accumulator + a;
+}
+
 function getNickname(myUser,myGuildID) {
 	var nickname = client.guilds.find('id',myGuildID).members.find('id',myUser.id).nickname;
     if (nickname == null) { nickname = myUser.username; }
@@ -894,18 +898,6 @@ function roll(message,s,crit=0,crittrue=0,previous="",version="v1") {
 		return;
 	}
 	
-	/*
-	var parameters = s.split(" ");
-	if(parameters.length!=3) {
-		message.channel.send("roll: I'm expecting 2 parameters like <roll 8 vs 5>");
-		return;
-	}
-	if( parameters[1]!="v" && parameters[1]!="vs") {
-		message.channel.send("roll: I'm expecting a 'vs' as 2nd parameter, like <roll 8 vs 5>, but I got "+parameters[1]);
-		return;
-	}
-	*/
-	
 	/* UPDATE 2022 FEB - before sending down the chain, figure out if there is a "+x" on the left and a "+y" on the right and if so,
 	                     calculate it, and send it down the chain to the sub-functions 
 	var bonus = stripPlusOff(parameters[0]);
@@ -926,15 +918,34 @@ function roll(message,s,crit=0,crittrue=0,previous="",version="v1") {
 		console.log("without penalty("+penalty+"), parameter is "+parameters[2]);
 	} */
 
-	var dice = parseInt(parameters[0]);
-	if( isNaN(dice)) {
-          rollWithStat( message,s,crit=0,crittrue=0,previous="",version); //this has to be made into an async call of its own :(
+	var dice = 0
+	var diceparse = parameters[0].split("+");
+	var diceorig = diceparse
+
+	diceparse = diceparse.filter(x => ! isNaN(x));
+
+	if ( diceparse.length != diceorig.length ) {
+          rollWithStat( message,s,crit=0,crittrue=0,previous="",version); 
         return;
+	} else {
+		diceparse.forEach(async function (item, index) {
+			dice = dice + parseInt(item);
+		})
 	}
 	var difficulty = parseInt(parameters[2]);
-	if( isNaN(difficulty)) {
+	var difficulty = 0;
+	var diffparse = parameters[2].split("+");
+	var difforig = diffparse
+
+	diffparse = diffparse.filter(x => ! isNaN(x));
+
+	if ( diffparse.length != difforig.length ) {
 		message.channel.send("roll: "+parameters[2]+" isn't a number.");
 		return;
+	} else {
+		diffparse.forEach(async function (item, index) {
+			difficulty = difficulty + parseInt(item);
+		})
 	}
 	if(version=="v2")
 		sendRollResultV2(message,s,dice);
@@ -945,7 +956,6 @@ function roll(message,s,crit=0,crittrue=0,previous="",version="v1") {
 function sendRollResult(message,s,dice,crit=0,crittrue=0,previous=""){
 	// var parameters = s.split(" ");
 	var parameters = s.split(/(vs|v)/i);
-
 	var diffparse = parameters[2].split("+");
         var difficulty = 0;
         diffparse.forEach(function (item, index) {
