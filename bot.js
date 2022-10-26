@@ -770,7 +770,7 @@ pcsheet += stats + `
                         console.log(pcsheet);
 			var pcs = "```css"+pcsheet+"```" 
                         message.channel.send(pcs);
-			message.channel.send("https://monfur.ca/dstory/sheet.php?name="+pnick);
+			message.channel.send("https://dstory.games/dstory/sheet.php?name="+pnick);
                 }
         });
                 } else {
