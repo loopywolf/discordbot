@@ -1,3 +1,4 @@
 *.json
 *.zip
 *.7z
+node_modules/*
