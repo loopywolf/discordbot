@@ -1183,6 +1183,8 @@ function sendStatResult(dice,difficulty,message,reportPercentile,s,result,crit,d
 
 function combatModifier(n) {
 	//gives the combat modifier
+	if(n>=20) return " [quadruple]";
+	if(n>=15) return " [triple]";
 	if(n>=10) return " [double]";
 	if(n>=7.5) return " [1.5x]";
 	if(n>=5) return " [full]";
