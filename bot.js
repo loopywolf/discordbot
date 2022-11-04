@@ -1222,8 +1222,11 @@ function sendRollResultV2(message,s,dice,crit=0,crittrue=0,previous=""){
 	// var dDice = 1 + Math.round( Math.random() * (dice-1) );
 	// var dTarget = 1 + Math.round( Math.random() * (difficulty-1) );
 
-	var dDice = Math.floor(Math.random() * (dice+1));
-	var dTarget =  Math.floor(Math.random() * (difficulty+1));
+	// var dDice = Math.floor(Math.random() * (dice+1));
+	// var dTarget =  Math.floor(Math.random() * (difficulty+1));
+
+	var dDice = Math.floor(Math.random() * (dice));
+        var dTarget =  Math.floor(Math.random() * (difficulty));
 
 
 	var maxMessage = "";
@@ -1237,7 +1240,15 @@ function sendRollResultV2(message,s,dice,crit=0,crittrue=0,previous=""){
 	console.log("dDice="+dDice+" dTarget="+dTarget+" margin="+margin+" successOrFail="+successOrFail);
 
     var cm = combatModifier(margin);
-    message.channel.send("rollv2: "+message.author.username+" rolled (d"+dice+",d"+difficulty+") and got ["+dDice+"]["+maxMessage+dTarget+"] (total "+total+
+    var mdice = dDice;
+    if(mdice == 0) {
+	    mdice = dice+' so  0';
+    }
+    var mtarget = dTarget
+    if(mtarget == 0) {
+	    mtarget = difficulty+' so 0';
+    }
+    message.channel.send("rollv2: "+message.author.username+" rolled (d"+dice+",d"+difficulty+") and got ["+mdice+"]["+maxMessage+mtarget+"] (total "+total+
     	") is a "+successOrFail+cm
     );
 }//F sendRollResultV2
