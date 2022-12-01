@@ -1629,7 +1629,7 @@ function sendRollResultV2(
   // var dDice = Math.floor(Math.random() * (dice+1));
   // var dTarget =  Math.floor(Math.random() * (difficulty+1));
 
-  var dDice = Math.floor(Math.random() * dice);
+  var dDice = Math.floor(Math.random() * dice) + 1;
   var dTarget = Math.floor(Math.random() * difficulty);
 
   var maxMessage = "";
@@ -1637,7 +1637,7 @@ function sendRollResultV2(
   var margin = dDice + dTarget - difficulty;
   var successOrFail = "**success** (margin is +" + margin + ")";
   if (margin < 0) successOrFail = "**failure** (margin is " + margin + ")";
-  if (margin == 0) successOrFail = "?";
+  if (margin == 0) successOrFail =  "**neutral** (margin is 0)";
   console.log(
     "dDice=" +
       dDice +
@@ -1651,9 +1651,6 @@ function sendRollResultV2(
 
   var cm = combatModifier(margin);
   var mdice = dDice;
-  if (mdice == 0) {
-    mdice = dice + " so  0";
-  }
   var mtarget = dTarget;
   if (mtarget == 0) {
     mtarget = difficulty + " so 0";
@@ -1683,7 +1680,7 @@ function weeklyXp(message, dbpool, s) {
   //week dubois in-game=2 doom=4 risk=1
   //dubois in-game=2 doom=4 risk=1
 
-  if (!gm(message)) {
+  if (gm(message)) {
     message.channel.send("I am sorry.  You are not allowed to do this");
   } else {
     var parameters = s.split(" ");
@@ -1711,32 +1708,36 @@ function weeklyXp(message, dbpool, s) {
     } //for
     console.log("weeklyxp: char=" + charName + " total=" + weeklyXp);
 
-    sql =
-      "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='" +
-      charName +
-      "'";
+//    sql =
+//      "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='" +
+//      charName +
+//      "'";
+//    dbpool.query(sql, function (err, result, fields) {
+//      if (err) throw err;
+//      if (Object.keys(result).length) {
+//        pnick = result[0].nickname;
+//        cid = result[0].charid;
+    sql = "UPDATE dice_stats SET statValue = statValue + '" + weeklyXp + "' WHERE dice_stats.char_id = (SELECT id FROM dice_characters WHERE name ='" + charName + "') AND dice_stats.statName = 'XP'";
+//        sql =
+//          "UPDATE dice_stats SET statValue = statValue + '" +
+//          weeklyXp +
+//          "' WHERE dice_stats.char_id = '" +
+//          cid +
+//          "' AND dice_stats.statName = 'XP'";
+    result = {};
     dbpool.query(sql, function (err, result, fields) {
       if (err) throw err;
       if (Object.keys(result).length) {
-        pnick = result[0].nickname;
-        cid = result[0].charid;
-        sql =
-          "UPDATE dice_stats SET statValue = statValue + '" +
-          weeklyXp +
-          "' WHERE dice_stats.char_id = '" +
-          cid +
-          "' AND dice_stats.statName = 'XP'";
-        result = {};
-        dbpool.query(sql, function (err, result, fields) {
-          if (err) throw err;
+	if (result.affectedRows == 1) {
           message.channel.send(
-            "weeklyxp: " + pnick + " received " + weeklyXp + " xp."
+            "weeklyxp: " + charName + " received " + weeklyXp + " xp."
           );
-        });
-      } else {
-        message.channel.send("weeklyxp: can't find character " + pnick);
+        } else {
+	  console.log("weeklyxp: char=" + charName + "Not Found" );
+          message.channel.send("weeklyxp: can't find character " + charName);
+        }
       }
-    });
+    })
   }
 } //F
 
@@ -1793,6 +1794,7 @@ client.on("message", (message) => {
   .add <character> in <game>
   .bonus <character> <amount>
   .xp <character> <amount>
+  .week <character> <key>=<value> <key>=<value>
   .luck <character> <amount>
   .setvalue <character> <stat> <amount>
 `;
