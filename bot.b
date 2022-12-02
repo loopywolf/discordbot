@@ -217,7 +217,7 @@ function luck(message, dbpool, s) {
   var pnick = "";
   var charluck = 0;
 
-  if (gm(message)) {
+  if (!gm(message)) {
     message.channel.send("I am sorry.  You are not allowed to do this");
   } else {
     var parameters = s.split(" ");
@@ -235,49 +235,34 @@ function luck(message, dbpool, s) {
       );
       return false;
     }
-//    sql =
-//      "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='" +
-//      pnick +
-//      "'";
-//    dbpool.query(sql, function (err, result, fields) {
-//      if (err) throw err;
-//      if (Object.keys(result).length) {
-//        pnick = result[0].nickname;
-//        cid = result[0].charid;
-//        sql =
-//          "UPDATE dice_stats SET statValue = statValue + '" +
-//          charluck +
-//          "' WHERE dice_stats.char_id = '" +
-//          cid +
-//          "' AND dice_stats.statName = 'LUCK'";
-//        result = {};
-//        dbpool.query(sql, function (err, result, fields) {
-//          if (err) throw err;
-//          //message.channel.send("Done - "+pnick+" received "+charluck+" luck.");
-//          message.channel.send(
-//            "Luck: " + pnick + " received " + charluck + " luck."
-//          );
-//        });
-//     } else {
-//       message.channel.send("luck: can't find character " + pnick);
-//     }
-//   });
-sql = "UPDATE dice_stats SET statValue = statValue + '" + charluck + "' WHERE dice_stats.char_id = (SELECT id FROM dice_characters WHERE name ='" + pnick + "') AND dice_stats.statName = 'Luck'";
-    result = {};
+    sql =
+      "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='" +
+      pnick +
+      "'";
     dbpool.query(sql, function (err, result, fields) {
       if (err) throw err;
       if (Object.keys(result).length) {
-        if (result.affectedRows == 1) {
+        pnick = result[0].nickname;
+        cid = result[0].charid;
+        sql =
+          "UPDATE dice_stats SET statValue = statValue + '" +
+          charluck +
+          "' WHERE dice_stats.char_id = '" +
+          cid +
+          "' AND dice_stats.statName = 'LUCK'";
+        result = {};
+        dbpool.query(sql, function (err, result, fields) {
+          if (err) throw err;
+          //message.channel.send("Done - "+pnick+" received "+charluck+" luck.");
           message.channel.send(
             "Luck: " + pnick + " received " + charluck + " luck."
           );
-        } else {
-          console.log("Luck: char=" + pnick + "Not Found" );
-          message.channel.send("Luck: can't find character " + pnick);
-        }
+        });
+      } else {
+        message.channel.send("luck: can't find character " + pnick);
       }
-    })
- }
+    });
+  }
 }
 
 function setvalue(message, dbpool, s) {
@@ -564,16 +549,54 @@ function registercharacter(message, s, dbpool) {
 function iam(message, s, dbpool) {
   var uid = message.author.id;
   var gid = message.channel.parent.id;
-  var nickname = mysql_real_escape_string(s);
-  console.log("iam: " + nickname);
+  s = mysql_real_escape_string(s);
+  console.log("iam: " + s);
   // message.channel.send("myid: "+user+" checked self-id "+id);
-  // var sql1 = "SELECT id AS charid FROM dice_characters WHERE name ='" + s + "'";
-  var sql = "INSERT INTO discord_users 	(category,userid,nickname,char_id) SELECT '"+gid+"','"+uid+"','blank','0' FROM (SELECT 1) t WHERE NOT EXISTS (SELECT id FROM discord_users WHERE category = '"+gid+"' AND userid = '"+uid+"'); UPDATE discord_users SET nickname = '"+nickname+"', char_id = (	SELECT id FROM dice_characters 	WHERE name = '"+nickname+"') WHERE category = '"+gid+"' AND userid = '"+uid+"'";
-  dbpool.query(sql, function (err, result, fields) {
-    if (err) {
-      message.channel.send("Stranger Danger!");
-    } else if (Object.keys(result).length) {
-      message.channel.send("Okay, you are now **" + nickname + "**");
+  var sql1 = "SELECT id AS charid FROM dice_characters WHERE name ='" + s + "'";
+  dbpool.query(sql1, function (err, result, fields) {
+    if (err) throw err;
+    if (Object.keys(result).length) {
+      cid = result[0].charid;
+      result = {};
+      var sql2 =
+        "SELECT nickname, char_id AS charid FROM discord_users WHERE category='" +
+        gid +
+        "' AND userid='" +
+        uid +
+        "'";
+      dbpool.query(sql2, function (err, result, fields) {
+        if (err) throw err;
+        if (Object.keys(result).length && result[0].nickname == s) {
+          message.channel.send("Hi " + s + "!  Glad to see you again!");
+        } else if (Object.keys(result).length && result[0].nickname != s) {
+          message.channel.send(
+            "Are you sure you're " +
+              s +
+              "?  I think you are " +
+              result[0].nickname +
+              "."
+          );
+        } else {
+          var sql3 =
+            "INSERT INTO discord_users (category,userid,char_id,nickname) VALUES ('" +
+            gid +
+            "','" +
+            uid +
+            "','" +
+            cid +
+            "','" +
+            s +
+            "')";
+          dbpool.query(sql3, function (err, result, fields) {
+            if (err) throw err;
+            message.channel.send("Hi " + s + "! Nice to meet you.");
+          });
+        }
+      });
+    } else {
+      message.channel.send(
+        "Hi " + s + "! I am sorry, but LoopyWolf said not to talk to strangers!"
+      );
     }
   });
 }
@@ -1142,7 +1165,7 @@ function roll(
   var finalresult = 0;
   console.log("roll cmd=" + s);
   //quick function that takes roll 8 vs 5
-  s = s.replace(/\s(vs|v)\s/g, "@");
+  s = s.replace(/\svs\s|\sv\s/g, "@");
   s = s.replace(/\s+/g, "");
   var parameters = s.split(/@/i);
   var pl = parameters.length;
@@ -1174,7 +1197,9 @@ function roll(
       dice = dice + parseInt(item);
     });
   }
-  // var difficulty = parseInt(parameters[1]);
+  
+  
+  var difficulty = parseInt(parameters[1]);
   var difficulty = 0;
   var diffparse = parameters[1].split("+");
   var difforig = diffparse;
@@ -1188,10 +1213,10 @@ function roll(
     diffparse.forEach(async function (item, index) {
       difficulty = difficulty + parseInt(item);
     });
-  }
+  
   if (version == "v2") sendRollResultV2(message, s, dice);
-  else sendRollResult(message, s, dice);
-}
+    else sendRollResult(message, s, dice);
+  }
 
 function sendRollResult(
   message,
@@ -1235,7 +1260,7 @@ function sendRollResult(
 
   var cm = combatModifier(result);
   s = s.replace(/\+/g, " + ");
-  s = s.replace(/@(?=\d)/gi, " vs ");
+  s = s.replace(/(vs|v)(?=\d)/gi, " vs ");
   message.channel.send(
     "roll: " +
       message.author.username +
@@ -1587,12 +1612,12 @@ function sendRollResultV2(
   previous = ""
 ) {
   // var parameters = s.split(" ");
-  var parameters = s.split(/@/i);
-  var diffparse = parameters[1].split("+");
+  var parameters = s.split(/(vs|v)/i);
+  var diffparse = parameters[2].split("+");
   var difficulty = 0;
   diffparse.forEach(function (item, index) {
     if (isNaN(item)) {
-      message.channel.send("rollv2: " + parameters[1] + " isn't a number.");
+      message.channel.send("rollv2: " + parameters[2] + " isn't a number.");
       return;
     }
     difficulty = difficulty + parseInt(item);
@@ -1657,7 +1682,7 @@ function weeklyXp(message, dbpool, s) {
   //week dubois in-game=2 doom=4 risk=1
   //dubois in-game=2 doom=4 risk=1
 
-  if (!gm(message)) {
+  if (gm(message)) {
     message.channel.send("I am sorry.  You are not allowed to do this");
   } else {
     var parameters = s.split(" ");
@@ -1685,16 +1710,30 @@ function weeklyXp(message, dbpool, s) {
     } //for
     console.log("weeklyxp: char=" + charName + " total=" + weeklyXp);
 
+//    sql =
+//      "SELECT name AS nickname, id AS charid FROM dice_characters WHERE name ='" +
+//      charName +
+//      "'";
+//    dbpool.query(sql, function (err, result, fields) {
+//      if (err) throw err;
+//      if (Object.keys(result).length) {
+//        pnick = result[0].nickname;
+//        cid = result[0].charid;
     sql = "UPDATE dice_stats SET statValue = statValue + '" + weeklyXp + "' WHERE dice_stats.char_id = (SELECT id FROM dice_characters WHERE name ='" + charName + "') AND dice_stats.statName = 'XP'";
+//        sql =
+//          "UPDATE dice_stats SET statValue = statValue + '" +
+//          weeklyXp +
+//          "' WHERE dice_stats.char_id = '" +
+//          cid +
+//          "' AND dice_stats.statName = 'XP'";
     result = {};
     dbpool.query(sql, function (err, result, fields) {
       if (err) throw err;
       if (Object.keys(result).length) {
 	if (result.affectedRows == 1) {
-	  var s2 = s.slice(charName.length+1);
           message.channel.send(
-            "**" + charName +"'s Weekly XP**: [*" + s2 + "*] **Total: " + weeklyXp + " XP**"
-          ); 
+            "weeklyxp: " + charName + " received " + weeklyXp + " xp."
+          );
         } else {
 	  console.log("weeklyxp: char=" + charName + "Not Found" );
           message.channel.send("weeklyxp: can't find character " + charName);
